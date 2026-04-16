@@ -4,6 +4,8 @@ import { useUserStore } from '@/stores/user'
 import { APP_CONFIG, showToast } from '@/utils/tools'
 
 // 路由懒加载
+const LandingView = () => import('@/views/LandingView.vue')
+const TutorialLandingView = () => import('@/views/TutorialLandingView.vue')
 const LoginView = () => import('@/views/LoginView.vue')
 const UserLoginView = () => import('@/views/UserLoginView.vue')
 const UserDashboardView = () => import('@/views/UserDashboardView.vue')
@@ -22,19 +24,15 @@ const RequestDetailsView = () => import('@/views/RequestDetailsView.vue')
 const routes = [
   {
     path: '/',
-    redirect: () => {
-      // 智能重定向：避免循环
-      const currentPath = window.location.pathname
-      const basePath = APP_CONFIG.basePath.replace(/\/$/, '') // 移除末尾斜杠
-
-      // 如果当前路径已经是 basePath 或 basePath/，重定向到 api-stats
-      if (currentPath === basePath || currentPath === basePath + '/') {
-        return '/api-stats'
-      }
-
-      // 否则保持默认重定向
-      return '/api-stats'
-    }
+    name: 'Landing',
+    component: LandingView,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/tutorial',
+    name: 'Tutorial',
+    component: TutorialLandingView,
+    meta: { requiresAuth: false }
   },
   {
     path: '/login',

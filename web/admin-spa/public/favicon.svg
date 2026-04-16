@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1C1C1E"/>
+      <stop offset="1" stop-color="#0F0F10"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="128" y1="96" x2="384" y2="416" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.02"/>
+    </linearGradient>
+    <filter id="shadow" x="40" y="40" width="432" height="432" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="88" y="88" width="336" height="336" rx="80" fill="url(#bg)"/>
+    <rect x="89" y="89" width="334" height="334" rx="79" stroke="white" stroke-opacity="0.08" stroke-width="2"/>
+  </g>
+
+  <path d="M214 170C171.03 170 136 205.03 136 248C136 290.97 171.03 326 214 326H251V296H216C189.49 296 168 274.51 168 248C168 221.49 189.49 200 216 200H251V170H214Z" fill="#F5F5F7"/>
+
+  <rect x="240" y="144" width="30" height="224" rx="15" fill="#FFFFFF"/>
+
+  <path d="M270 170H298C340.97 170 376 205.03 376 248C376 290.97 340.97 326 298 326H270V296H296C322.51 296 344 274.51 344 248C344 221.49 322.51 200 296 200H270V170Z" fill="#D1D5DB"/>
+
+  <path d="M126 136C126 124.954 134.954 116 146 116H366C377.046 116 386 124.954 386 136V142C386 130.954 377.046 122 366 122H146C134.954 122 126 130.954 126 142V136Z" fill="url(#gloss)"/>
+
+  <rect x="248" y="158" width="14" height="190" rx="7" fill="white" fill-opacity="0.10"/>
+</svg>
