@@ -1,56 +1,49 @@
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        class="modal-content mx-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800"
-      >
-        <div class="mb-6 flex items-start gap-4">
+      <div class="modal-content mx-auto w-full max-w-sm p-6">
+        <div class="mb-5 text-center">
           <div
             :class="[
-              'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full',
+              'mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full',
               type === 'danger'
-                ? 'bg-gradient-to-br from-red-400 to-red-500'
+                ? 'bg-red-50 dark:bg-red-900/20'
                 : type === 'warning'
-                  ? 'bg-gradient-to-br from-yellow-400 to-yellow-500'
-                  : 'bg-primary'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20'
+                  : 'bg-blue-50 dark:bg-blue-900/20'
             ]"
           >
             <i
               :class="[
-                'text-xl text-white',
+                'text-lg',
                 type === 'danger'
-                  ? 'fas fa-trash-alt'
+                  ? 'fas fa-trash-alt text-red-500'
                   : type === 'warning'
-                    ? 'fas fa-exclamation'
-                    : 'fas fa-question'
+                    ? 'fas fa-exclamation-triangle text-yellow-500'
+                    : 'fas fa-question-circle text-blue-500'
               ]"
             />
           </div>
-          <div class="flex-1">
-            <h3 class="mb-2 text-lg font-bold text-gray-900 dark:text-white">
-              {{ title }}
-            </h3>
-            <p class="whitespace-pre-line text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-              {{ message }}
-            </p>
-          </div>
+          <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+            {{ title }}
+          </h3>
+          <p class="whitespace-pre-line text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+            {{ message }}
+          </p>
         </div>
 
         <div class="flex gap-3">
-          <button
-            class="flex-1 rounded-xl bg-gray-100 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-            @click="$emit('cancel')"
-          >
+          <button class="confirm-btn confirm-btn--ghost flex-1" @click="$emit('cancel')">
             {{ cancelText }}
           </button>
           <button
             :class="[
-              'flex-1 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition-all',
+              'confirm-btn flex-1',
               type === 'danger'
-                ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                ? 'confirm-btn--danger'
                 : type === 'warning'
-                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
-                  : 'bg-primary hover:opacity-90'
+                  ? 'confirm-btn--warning'
+                  : 'confirm-btn--primary'
             ]"
             @click="$emit('confirm')"
           >
@@ -86,7 +79,7 @@ defineProps({
   },
   type: {
     type: String,
-    default: 'primary', // primary | warning | danger
+    default: 'primary',
     validator: (value) => ['primary', 'warning', 'danger'].includes(value)
   }
 })
@@ -95,13 +88,51 @@ defineEmits(['confirm', 'cancel'])
 </script>
 
 <style scoped>
-.modal {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
+.confirm-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease;
 }
-
-:global(.dark) .modal {
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+.confirm-btn:active {
+  transform: scale(0.97);
+}
+.confirm-btn--ghost {
+  background: rgba(0, 0, 0, 0.05);
+  color: #1d1d1f;
+}
+:global(.dark) .confirm-btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f5f5f7;
+}
+.confirm-btn--ghost:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+.confirm-btn--primary {
+  background: #0071e3;
+  color: #fff;
+}
+.confirm-btn--primary:hover {
+  background: #0077ed;
+}
+.confirm-btn--danger {
+  background: #ff3b30;
+  color: #fff;
+}
+.confirm-btn--danger:hover {
+  background: #e0342b;
+}
+.confirm-btn--warning {
+  background: #ff9500;
+  color: #fff;
+}
+.confirm-btn--warning:hover {
+  background: #e68600;
 }
 </style>

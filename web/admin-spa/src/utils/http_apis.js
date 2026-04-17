@@ -36,12 +36,6 @@ export const updateOemSettingsApi = (data) =>
 // 服务倍率配置（公开接口）
 export const getServiceRatesApi = () => request({ url: '/apiStats/service-rates', method: 'GET' })
 
-// 额度卡兑换（公开接口）
-export const redeemCardByApiIdApi = (data) =>
-  request({ url: '/apiStats/api/redeem-card', method: 'POST', data })
-export const getRedemptionHistoryByApiIdApi = (apiId, params = {}) =>
-  request({ url: '/apiStats/api/redemption-history', method: 'GET', params: { apiId, ...params } })
-
 // 仪表板
 export const getDashboardApi = () => request({ url: '/admin/dashboard', method: 'GET' })
 export const getTempUnavailableApi = () =>
@@ -267,23 +261,6 @@ export const getAccountGroupMembersApi = (id) =>
 
 // 用户管理（管理员）
 export const getUsersApi = () => request({ url: '/admin/users', method: 'GET' })
-
-// 配额卡片
-export const createQuotaCardApi = (data) =>
-  request({ url: '/admin/quota-cards', method: 'POST', data })
-export const deleteQuotaCardApi = (id) =>
-  request({ url: `/admin/quota-cards/${id}`, method: 'DELETE' })
-export const getQuotaCardsWithParamsApi = (params) =>
-  request({ url: '/admin/quota-cards', method: 'GET', params })
-export const getQuotaCardsStatsApi = () =>
-  request({ url: '/admin/quota-cards/stats', method: 'GET' })
-export const getRedemptionsApi = () => request({ url: '/admin/redemptions', method: 'GET' })
-export const revokeRedemptionApi = (id, data) =>
-  request({ url: `/admin/redemptions/${id}/revoke`, method: 'POST', data })
-export const getQuotaCardLimitsApi = () =>
-  request({ url: '/admin/quota-cards/limits', method: 'GET' })
-export const updateQuotaCardLimitsApi = (data) =>
-  request({ url: '/admin/quota-cards/limits', method: 'PUT', data })
 
 // 账户余额
 export const getAccountBalanceApi = (id, params) =>

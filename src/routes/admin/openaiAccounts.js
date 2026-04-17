@@ -23,7 +23,7 @@ const OPENAI_CONFIG = {
   BASE_URL: 'https://auth.openai.com',
   CLIENT_ID: 'app_EMoamEEZ73f0CkXaXp7hrann',
   REDIRECT_URI: 'http://localhost:1455/auth/callback',
-  SCOPE: 'openid profile email offline_access'
+  SCOPE: 'openid profile email offline_access api.connectors.read api.connectors.invoke'
 }
 
 /**

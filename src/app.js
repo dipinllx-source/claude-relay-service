@@ -604,7 +604,7 @@ class Application {
       await this.initialize()
 
       this.server = this.app.listen(config.server.port, config.server.host, () => {
-        logger.start(`Claude Relay Service started on ${config.server.host}:${config.server.port}`)
+        logger.start(`Relay Service started on ${config.server.host}:${config.server.port}`)
         logger.info(
           `🌐 Web interface: http://${config.server.host}:${config.server.port}/admin-next/api-stats`
         )

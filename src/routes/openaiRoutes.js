@@ -332,11 +332,23 @@ const handleResponses = async (req, res) => {
     // 基于白名单构造上游所需的请求头，确保键为小写且值受控
     const incoming = req.headers || {}
 
-    const allowedKeys = ['version', 'openai-beta', 'session_id']
+    const allowedKeys = [
+      'version',
+      'openai-beta',
+      'session_id',
+      'user-agent',
+      'originator'
+    ]
 
     const headers = {}
     for (const key of allowedKeys) {
       if (incoming[key] !== undefined) {
+        headers[key] = incoming[key]
+      }
+    }
+    // 透传所有 x-codex-* 和 x-client-request-id 等 Codex CLI 专属 header
+    for (const key of Object.keys(incoming)) {
+      if (key.startsWith('x-codex-') || key === 'x-client-request-id') {
         headers[key] = incoming[key]
       }
     }
@@ -382,6 +394,7 @@ const handleResponses = async (req, res) => {
     const codexEndpoint = isCompactRoute
       ? 'https://chatgpt.com/backend-api/codex/responses/compact'
       : 'https://chatgpt.com/backend-api/codex/responses'
+
 
     // 根据 stream 参数决定请求类型
     if (isStream) {

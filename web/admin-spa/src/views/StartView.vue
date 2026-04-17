@@ -1,6 +1,6 @@
 <template>
-  <div class="apple-landing tutorial-page">
-    <!-- Primary nav (same as Landing) -->
+  <div class="apple-landing start-page">
+    <!-- Nav -->
     <nav class="apple-nav" :class="{ 'apple-nav--scrolled': scrolled }">
       <div class="apple-nav__inner">
         <router-link class="apple-nav__brand" to="/">
@@ -13,7 +13,7 @@
           >
             <defs>
               <linearGradient
-                id="relayBg2"
+                id="sBg"
                 gradientUnits="userSpaceOnUse"
                 x1="96"
                 x2="416"
@@ -23,29 +23,8 @@
                 <stop stop-color="#1C1C1E" />
                 <stop offset="1" stop-color="#0F0F10" />
               </linearGradient>
-              <linearGradient
-                id="relayGloss2"
-                gradientUnits="userSpaceOnUse"
-                x1="128"
-                x2="384"
-                y1="96"
-                y2="416"
-              >
-                <stop stop-color="white" stop-opacity="0.16" />
-                <stop offset="1" stop-color="white" stop-opacity="0.02" />
-              </linearGradient>
             </defs>
-            <rect fill="url(#relayBg2)" height="336" rx="80" width="336" x="88" y="88" />
-            <rect
-              height="334"
-              rx="79"
-              stroke="white"
-              stroke-opacity="0.08"
-              stroke-width="2"
-              width="334"
-              x="89"
-              y="89"
-            />
+            <rect fill="url(#sBg)" height="336" rx="80" width="336" x="88" y="88" />
             <path
               d="M214 170C171.03 170 136 205.03 136 248C136 290.97 171.03 326 214 326H251V296H216C189.49 296 168 274.51 168 248C168 221.49 189.49 200 216 200H251V170H214Z"
               fill="#F5F5F7"
@@ -55,18 +34,13 @@
               d="M270 170H298C340.97 170 376 205.03 376 248C376 290.97 340.97 326 298 326H270V296H296C322.51 296 344 274.51 344 248C344 221.49 322.51 200 296 200H270V170Z"
               fill="#D1D5DB"
             />
-            <path
-              d="M126 136C126 124.954 134.954 116 146 116H366C377.046 116 386 124.954 386 136V142C386 130.954 377.046 122 366 122H146C134.954 122 126 130.954 126 142V136Z"
-              fill="url(#relayGloss2)"
-            />
-            <rect fill="white" fill-opacity="0.10" height="190" rx="7" width="14" x="248" y="158" />
           </svg>
           <span>Relay</span>
         </router-link>
         <div class="apple-nav__links">
           <router-link to="/">首页</router-link>
           <a
-            class="apple-nav__dropdown-trigger"
+            class="apple-nav__dropdown-trigger apple-nav__link--active"
             href="#"
             @click.prevent="toggleDropdown('start')"
             @mouseenter="openDropdown('start')"
@@ -89,7 +63,7 @@
             </svg>
           </a>
           <a
-            class="apple-nav__dropdown-trigger apple-nav__link--active"
+            class="apple-nav__dropdown-trigger"
             href="#"
             @click.prevent="toggleDropdown('tutorial')"
             @mouseenter="openDropdown('tutorial')"
@@ -118,7 +92,7 @@
       </div>
     </nav>
 
-    <!-- Full-width dropdown panel (Apple-style, GPU-only) -->
+    <!-- Dropdown panel -->
     <div
       class="dropdown-panel"
       :class="{ 'dropdown-panel--open': activeDropdown === 'tutorial' }"
@@ -127,22 +101,22 @@
       <div class="dropdown-panel__inner">
         <div class="dropdown-panel__section">
           <div class="dropdown-panel__label">使用教程</div>
-          <button
+          <router-link
             v-for="tool in cliTools"
             :key="tool.key"
             class="dropdown-panel__link"
-            :class="{ 'dropdown-panel__link--active': activeCliTool === tool.key }"
-            @click="selectTool(tool.key)"
+            :to="{ path: '/tutorial', query: { tool: tool.key } }"
+            @click="closeDropdown"
           >
             <i :class="tool.icon" />
             <span>{{ tool.name }}</span>
-          </button>
+          </router-link>
         </div>
         <div class="dropdown-panel__section dropdown-panel__section--aside">
           <div class="dropdown-panel__label">快捷入口</div>
-          <router-link class="dropdown-panel__link" to="/" @click="closeDropdown">
-            <i class="fas fa-home" />
-            <span>首页</span>
+          <router-link class="dropdown-panel__link" to="/tutorial" @click="closeDropdown">
+            <i class="fas fa-book-open" />
+            <span>全部教程</span>
           </router-link>
           <router-link class="dropdown-panel__link" to="/api-stats" @click="closeDropdown">
             <i class="fas fa-chart-bar" />
@@ -178,44 +152,40 @@
       </div>
     </div>
 
-    <!-- Page hero -->
-    <section class="tut-hero">
-      <div class="tut-hero__inner">
-        <p class="tut-hero__eyebrow">{{ currentToolTitle }}</p>
-        <h1 class="tut-hero__title">在几分钟内，完成接入。</h1>
-        <p class="tut-hero__sub">选择你的操作系统，按步骤在本地完成安装与认证。</p>
-
-        <!-- OS selector (also menu-styled) -->
-        <div class="os-menu">
-          <button
-            v-for="system in tutorialSystems"
-            :key="system.key"
-            class="os-menu__item"
-            :class="{ 'os-menu__item--active': activeTutorialSystem === system.key }"
-            @click="activeTutorialSystem = system.key"
-          >
-            <i :class="system.icon" />
-            <span>{{ system.name }}</span>
-          </button>
-        </div>
+    <!-- Hero -->
+    <section class="start-hero">
+      <div class="start-hero__inner reveal">
+        <p class="start-hero__eyebrow">快速开始</p>
+        <h1 class="start-hero__title">几分钟内，接入所有主流 AI。</h1>
+        <p class="start-hero__sub">按照以下步骤，在本地完成安装并开始使用 Relay Service。</p>
       </div>
     </section>
 
-    <!-- Demo panel -->
-    <section class="demo">
-      <div class="demo__frame">
-        <div class="demo__bar">
-          <span class="demo__dot demo__dot--r"></span>
-          <span class="demo__dot demo__dot--y"></span>
-          <span class="demo__dot demo__dot--g"></span>
-          <div class="demo__crumbs">
-            <span>{{ currentToolTitle }}</span>
-            <span class="demo__crumbs-sep">›</span>
-            <span>{{ currentSystemName }}</span>
+    <!-- Steps -->
+    <section class="steps">
+      <div class="steps__grid">
+        <article v-for="(step, idx) in steps" :key="idx" class="step reveal">
+          <div class="step__number">{{ idx + 1 }}</div>
+          <h3 class="step__title">{{ step.title }}</h3>
+          <p class="step__desc">{{ step.desc }}</p>
+          <div v-if="step.code" class="step__code">
+            <code>{{ step.code }}</code>
           </div>
-        </div>
-        <div :key="activeCliTool + '-' + activeTutorialSystem" class="demo__body">
-          <component :is="currentTutorialComponent" :platform="activeTutorialSystem" />
+          <router-link v-if="step.link" class="step__link" :to="step.link.to">
+            {{ step.link.text }} ›
+          </router-link>
+        </article>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="start-cta">
+      <div class="start-cta__inner reveal">
+        <h2>准备好了？</h2>
+        <p>进入控制台创建 API Key，开始使用。</p>
+        <div class="start-cta__buttons">
+          <router-link class="btn btn--primary btn--lg" to="/login">进入控制台</router-link>
+          <router-link class="btn btn--ghost btn--lg" to="/api-stats">查看实时数据 ›</router-link>
         </div>
       </div>
     </section>
@@ -231,15 +201,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import ClaudeCodeTutorial from '@/components/tutorial/ClaudeCodeTutorial.vue'
-import GeminiCliTutorial from '@/components/tutorial/GeminiCliTutorial.vue'
-import CodexTutorial from '@/components/tutorial/CodexTutorial.vue'
-import DroidCliTutorial from '@/components/tutorial/DroidCliTutorial.vue'
-
-const route = useRoute()
-const router = useRouter()
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const scrolled = ref(false)
 const activeDropdown = ref(null)
@@ -253,68 +215,68 @@ const closeDropdown = () => {
   activeDropdown.value = null
 }
 
-const activeTutorialSystem = ref('windows')
-const activeCliTool = ref('claude-code')
-
-const tutorialSystems = [
-  { key: 'windows', name: 'Windows', icon: 'fab fa-windows' },
-  { key: 'macos', name: 'macOS', icon: 'fab fa-apple' },
-  { key: 'linux', name: 'Linux / WSL2', icon: 'fab fa-linux' }
-]
-
 const cliTools = [
-  { key: 'claude-code', name: 'Claude Code', icon: 'fas fa-robot', component: ClaudeCodeTutorial },
-  { key: 'codex', name: 'Codex', icon: 'fas fa-code', component: CodexTutorial },
-  { key: 'gemini-cli', name: 'Gemini CLI', icon: 'fab fa-google', component: GeminiCliTutorial },
-  { key: 'droid-cli', name: 'Droid CLI', icon: 'fas fa-terminal', component: DroidCliTutorial }
+  { key: 'claude-code', name: 'Claude Code', icon: 'fas fa-robot' },
+  { key: 'codex', name: 'Codex', icon: 'fas fa-code' },
+  { key: 'gemini-cli', name: 'Gemini CLI', icon: 'fab fa-google' },
+  { key: 'droid-cli', name: 'Droid CLI', icon: 'fas fa-terminal' }
 ]
 
-const currentToolTitle = computed(() => {
-  const t = cliTools.find((x) => x.key === activeCliTool.value)
-  return t ? t.name : 'CLI 工具'
-})
-const currentSystemName = computed(() => {
-  const s = tutorialSystems.find((x) => x.key === activeTutorialSystem.value)
-  return s ? s.name : ''
-})
-const currentTutorialComponent = computed(() => {
-  const t = cliTools.find((x) => x.key === activeCliTool.value)
-  return t ? t.component : null
-})
-
-const applyToolFromQuery = () => {
-  const q = route.query.tool
-  if (q && cliTools.some((t) => t.key === q)) {
-    activeCliTool.value = q
+const steps = [
+  {
+    title: '获取 API Key',
+    desc: '登录管理控制台，在 API Keys 页面创建你的专属 Key（以 cr_ 开头）。',
+    link: { to: '/login', text: '前往控制台' }
+  },
+  {
+    title: '获取接入 AI 账户',
+    desc: '在控制台添加 Claude、Gemini、OpenAI 等平台的账户凭据，系统将自动管理和调度。',
+    link: { to: '/login', text: '管理账户' }
+  },
+  {
+    title: '选择 CLI 工具',
+    desc: '支持 Claude Code、Codex、Gemini CLI、Droid CLI 等主流 CLI 工具。',
+    link: { to: '/tutorial', text: '查看使用教程' }
+  },
+  {
+    title: '开始对话',
+    desc: '一切就绪。你的请求将被智能调度到最佳可用账户。',
+    code: 'curl -X POST /api/v1/chat/completions ...'
   }
-}
-
-const selectTool = (key) => {
-  activeCliTool.value = key
-  closeDropdown()
-  if (route.query.tool !== key) {
-    router.replace({ path: '/tutorial', query: { ...route.query, tool: key } })
-  }
-}
-
-watch(() => route.query.tool, applyToolFromQuery)
+]
 
 let onScroll
+let observer
+
 onMounted(() => {
-  applyToolFromQuery()
   onScroll = () => {
     scrolled.value = window.scrollY > 8
   }
   window.addEventListener('scroll', onScroll, { passive: true })
   onScroll()
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal--in')
+          observer.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.12 }
+  )
+  document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
 })
+
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)
+  observer && observer.disconnect()
 })
 </script>
 
 <style scoped>
-.tutorial-page {
+.start-page {
   font-family:
     -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue',
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
@@ -325,7 +287,20 @@ onBeforeUnmount(() => {
   min-height: 100vh;
 }
 
-/* ---------- Primary nav ---------- */
+/* Reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal--in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Nav */
 .apple-nav {
   position: fixed;
   top: 0;
@@ -376,11 +351,11 @@ onBeforeUnmount(() => {
   opacity: 0.85;
   transition: opacity 0.2s;
 }
-.apple-nav__links a:hover,
-.apple-nav__link--active {
+.apple-nav__links a:hover {
   opacity: 1;
 }
 .apple-nav__link--active {
+  opacity: 1;
   font-weight: 600;
 }
 .apple-nav__cta a {
@@ -388,13 +363,7 @@ onBeforeUnmount(() => {
   text-decoration: none;
   font-weight: 500;
 }
-@media (max-width: 720px) {
-  .apple-nav__links {
-    display: none;
-  }
-}
-
-/* ---------- Dropdown trigger ---------- */
+/* Dropdown trigger */
 .apple-nav__dropdown-trigger {
   display: inline-flex;
   align-items: center;
@@ -418,7 +387,7 @@ onBeforeUnmount(() => {
   transform: rotate(180deg);
 }
 
-/* ---------- Full-width dropdown panel (GPU-only) ---------- */
+/* Dropdown panel */
 .dropdown-panel {
   position: fixed;
   top: 48px;
@@ -490,16 +459,11 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 14px;
   padding: 10px 0;
-  border: none;
-  background: transparent;
   text-decoration: none;
   color: #424245;
   font-size: 24px;
   font-weight: 600;
   letter-spacing: -0.015em;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
   opacity: 0;
   transform: translateY(8px);
   will-change: transform, opacity;
@@ -521,17 +485,11 @@ onBeforeUnmount(() => {
 .dropdown-panel--open .dropdown-panel__link:nth-child(5) {
   transition-delay: 0.2s;
 }
-.dropdown-panel--open .dropdown-panel__link:nth-child(6) {
-  transition-delay: 0.25s;
-}
 .dropdown-panel--open .dropdown-panel__link {
   opacity: 1;
   transform: translateY(0);
 }
 .dropdown-panel__link:hover {
-  color: #0071e3;
-}
-.dropdown-panel__link--active {
   color: #0071e3;
 }
 .dropdown-panel__link i {
@@ -540,8 +498,7 @@ onBeforeUnmount(() => {
   color: #86868b;
   transition: color 0.15s ease;
 }
-.dropdown-panel__link:hover i,
-.dropdown-panel__link--active i {
+.dropdown-panel__link:hover i {
   color: #0071e3;
 }
 .dropdown-panel__section--aside .dropdown-panel__link {
@@ -557,7 +514,7 @@ onBeforeUnmount(() => {
   width: 22px;
 }
 
-/* ---------- Backdrop ---------- */
+/* Backdrop */
 .dropdown-backdrop {
   position: fixed;
   top: 48px;
@@ -584,6 +541,9 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 720px) {
+  .apple-nav__links {
+    display: none;
+  }
   .dropdown-panel__inner {
     flex-direction: column;
     gap: 24px;
@@ -600,21 +560,21 @@ onBeforeUnmount(() => {
   }
 }
 
-/* ---------- Hero ---------- */
-.tut-hero {
-  padding: 110px 22px 40px;
+/* Hero */
+.start-hero {
+  padding: 130px 22px 60px;
   text-align: center;
   max-width: 980px;
   margin: 0 auto;
 }
-.tut-hero__eyebrow {
+.start-hero__eyebrow {
   font-size: 17px;
   font-weight: 500;
   color: #0071e3;
   margin: 0 0 8px;
 }
-.tut-hero__title {
-  font-size: clamp(36px, 6vw, 64px);
+.start-hero__title {
+  font-size: clamp(36px, 5vw, 56px);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.08;
@@ -624,121 +584,145 @@ onBeforeUnmount(() => {
   background-clip: text;
   color: transparent;
 }
-.tut-hero__sub {
+.start-hero__sub {
   font-size: 19px;
   color: #6e6e73;
-  margin: 0 0 36px;
+  margin: 0;
 }
 
-/* OS menu */
-.os-menu {
-  display: inline-flex;
-  gap: 6px;
-  padding: 6px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 980px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-.os-menu__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border: none;
-  background: transparent;
-  border-radius: 980px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1d1d1f;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-.os-menu__item:hover {
-  background: rgba(255, 255, 255, 0.6);
-}
-.os-menu__item--active {
-  background: #fff;
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.15);
-  color: #0071e3;
-}
-
-/* ---------- Demo ---------- */
-.demo {
+/* Steps */
+.steps {
   max-width: 1100px;
   margin: 0 auto;
   padding: 40px 22px 100px;
 }
-.demo__frame {
-  background: #1d1d1f;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.25);
+.steps__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
-.demo__bar {
-  height: 44px;
-  background: linear-gradient(180deg, #3a3a3c, #2c2c2e);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+.step {
+  background: #fff;
+  border-radius: 22px;
+  padding: 36px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.3s ease;
+}
+.step:hover {
+  transform: translateY(-2px);
+}
+.step__number {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1d1d1f;
+  color: #fff;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 18px;
-  position: relative;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 16px;
 }
-.demo__dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+.step__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 10px;
+  color: #1d1d1f;
 }
-.demo__dot--r {
-  background: #ff5f56;
+.step__desc {
+  font-size: 15px;
+  color: #6e6e73;
+  line-height: 1.5;
+  margin: 0 0 16px;
 }
-.demo__dot--y {
-  background: #ffbd2e;
+.step__code {
+  padding: 12px 16px;
+  background: #f5f5f7;
+  border-radius: 10px;
+  margin-bottom: 12px;
 }
-.demo__dot--g {
-  background: #27c93f;
+.step__code code {
+  font-size: 14px;
+  color: #1d1d1f;
+  font-family: 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
-.demo__crumbs {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
-  color: #a1a1a6;
-  font-size: 13px;
+.step__link {
+  font-size: 15px;
+  color: #0071e3;
+  text-decoration: none;
   font-weight: 500;
 }
-.demo__crumbs-sep {
-  color: #6e6e73;
-}
-.demo__body {
-  background: #fbfbfd;
-  padding: 32px;
-  animation: demoFade 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  min-height: 400px;
-}
-@keyframes demoFade {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.step__link:hover {
+  text-decoration: underline;
 }
 @media (max-width: 720px) {
-  .demo__crumbs {
-    display: none;
-  }
-  .demo__body {
-    padding: 20px;
+  .steps__grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ---------- Footer ---------- */
+/* CTA */
+.start-cta {
+  padding: 100px 22px;
+  text-align: center;
+  background: linear-gradient(180deg, #fbfbfd 0%, #f5f5f7 100%);
+}
+.start-cta__inner h2 {
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+  line-height: 1.1;
+}
+.start-cta__inner p {
+  font-size: 19px;
+  color: #6e6e73;
+  margin: 0 0 32px;
+}
+.start-cta__buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border-radius: 980px;
+  font-size: 17px;
+  font-weight: 400;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+.btn--primary {
+  background: #0071e3;
+  color: #fff;
+}
+.btn--primary:hover {
+  background: #0077ed;
+  transform: scale(1.02);
+}
+.btn--ghost {
+  background: transparent;
+  color: #0071e3;
+}
+.btn--ghost:hover {
+  text-decoration: underline;
+}
+.btn--lg {
+  padding: 14px 28px;
+  font-size: 19px;
+}
+
+/* Footer */
 .foot {
   background: #f5f5f7;
   border-top: 1px solid #d2d2d7;

@@ -93,6 +93,36 @@
             替换为您的实际 API 密钥
           </p>
         </div>
+
+        <!-- 模型选择说明 -->
+        <div
+          class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-950/30 sm:p-4"
+        >
+          <h6 class="mb-2 font-medium text-blue-800 dark:text-blue-300">📌 模型选择</h6>
+          <ul class="space-y-1 text-sm text-blue-700 dark:text-blue-300">
+            <li>
+              • <strong>ChatGPT Plus 订阅</strong>：仅支持通用模型，推荐
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5.4</code> /
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5</code> /
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5.1</code>
+            </li>
+            <li>
+              • <strong>ChatGPT Pro / Business / Enterprise 订阅</strong>：可额外使用 Codex 专属模型
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5-codex</code> /
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5.1-codex-max</code>
+            </li>
+            <li class="pt-1">
+              • 若请求被上游返回
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900"
+                >model is not supported when using Codex with a ChatGPT account</code
+              >
+              ，请将
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">model</code>
+              改为通用模型（如
+              <code class="rounded bg-blue-100 px-1 dark:bg-blue-900">gpt-5.4</code>）
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -123,8 +153,7 @@ const authPath = computed(() =>
 
 const configTomlLines = computed(() => [
   'model_provider = "crs"',
-  'model = "gpt-5-codex"',
-  'model_reasoning_effort = "high"',
+  'model = "gpt-5.4"',
   'disable_response_storage = true',
   'preferred_auth_method = "apikey"',
   '',

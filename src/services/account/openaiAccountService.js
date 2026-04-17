@@ -124,7 +124,7 @@ async function refreshAccessToken(refreshToken, proxy = null) {
       grant_type: 'refresh_token',
       client_id: CLIENT_ID,
       refresh_token: refreshToken,
-      scope: 'openid profile email'
+      scope: 'openid profile email offline_access api.connectors.read api.connectors.invoke'
     }).toString()
 
     // 配置请求选项

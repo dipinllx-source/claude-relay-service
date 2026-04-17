@@ -27,7 +27,7 @@ const concurrencyRoutes = require('./concurrency')
 const claudeRelayConfigRoutes = require('./claudeRelayConfig')
 const syncRoutes = require('./sync')
 const serviceRatesRoutes = require('./serviceRates')
-const quotaCardsRoutes = require('./quotaCards')
+
 const errorHistoryRoutes = require('./errorHistory')
 const requestDetailsRoutes = require('./requestDetails')
 
@@ -48,7 +48,7 @@ router.use('/', concurrencyRoutes)
 router.use('/', claudeRelayConfigRoutes)
 router.use('/', syncRoutes)
 router.use('/', serviceRatesRoutes)
-router.use('/', quotaCardsRoutes)
+
 router.use('/', errorHistoryRoutes)
 router.use('/', requestDetailsRoutes)
 

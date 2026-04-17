@@ -64,19 +64,18 @@
           <span>Relay</span>
         </a>
         <div class="apple-nav__links">
-          <a href="#platforms">平台</a>
-          <a href="#features">特性</a>
+          <a href="#top">首页</a>
           <a
             class="apple-nav__dropdown-trigger"
             href="#"
-            @click.prevent="tutorialOpen = !tutorialOpen"
-            @mouseenter="tutorialOpen = true"
+            @click.prevent="toggleDropdown('start')"
+            @mouseenter="openDropdown('start')"
           >
-            使用教程
+            开始使用
             <svg
               aria-hidden="true"
               class="apple-nav__caret"
-              :class="{ 'apple-nav__caret--open': tutorialOpen }"
+              :class="{ 'apple-nav__caret--open': activeDropdown === 'start' }"
               viewBox="0 0 10 6"
             >
               <path
@@ -89,8 +88,29 @@
               />
             </svg>
           </a>
-          <a href="#stats">数据</a>
-          <a href="#start">开始</a>
+          <a
+            class="apple-nav__dropdown-trigger"
+            href="#"
+            @click.prevent="toggleDropdown('tutorial')"
+            @mouseenter="openDropdown('tutorial')"
+          >
+            使用教程
+            <svg
+              aria-hidden="true"
+              class="apple-nav__caret"
+              :class="{ 'apple-nav__caret--open': activeDropdown === 'tutorial' }"
+              viewBox="0 0 10 6"
+            >
+              <path
+                d="M1 1l4 4 4-4"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.4"
+              />
+            </svg>
+          </a>
         </div>
         <div class="apple-nav__cta">
           <router-link to="/login">控制台 →</router-link>
@@ -101,8 +121,8 @@
     <!-- Full-width dropdown panel (Apple-style) -->
     <div
       class="dropdown-panel"
-      :class="{ 'dropdown-panel--open': tutorialOpen }"
-      @mouseleave="tutorialOpen = false"
+      :class="{ 'dropdown-panel--open': activeDropdown === 'tutorial' }"
+      @mouseleave="closeDropdown"
     >
       <div class="dropdown-panel__inner">
         <div class="dropdown-panel__section">
@@ -112,7 +132,7 @@
             :key="tool.key"
             class="dropdown-panel__link"
             :to="{ path: '/tutorial', query: { tool: tool.key } }"
-            @click="tutorialOpen = false"
+            @click="closeDropdown"
           >
             <i :class="tool.icon" />
             <span>{{ tool.name }}</span>
@@ -120,11 +140,11 @@
         </div>
         <div class="dropdown-panel__section dropdown-panel__section--aside">
           <div class="dropdown-panel__label">快捷入口</div>
-          <router-link class="dropdown-panel__link" to="/tutorial" @click="tutorialOpen = false">
+          <router-link class="dropdown-panel__link" to="/tutorial" @click="closeDropdown">
             <i class="fas fa-book-open" />
             <span>全部教程</span>
           </router-link>
-          <router-link class="dropdown-panel__link" to="/api-stats" @click="tutorialOpen = false">
+          <router-link class="dropdown-panel__link" to="/api-stats" @click="closeDropdown">
             <i class="fas fa-chart-bar" />
             <span>实时数据</span>
           </router-link>
@@ -133,9 +153,30 @@
     </div>
     <div
       class="dropdown-backdrop"
-      :class="{ 'dropdown-backdrop--open': tutorialOpen }"
-      @click="tutorialOpen = false"
+      :class="{ 'dropdown-backdrop--open': !!activeDropdown }"
+      @click="closeDropdown"
     ></div>
+
+    <!-- Start dropdown panel -->
+    <div
+      class="dropdown-panel"
+      :class="{ 'dropdown-panel--open': activeDropdown === 'start' }"
+      @mouseleave="closeDropdown"
+    >
+      <div class="dropdown-panel__inner">
+        <div class="dropdown-panel__section">
+          <div class="dropdown-panel__label">开始使用</div>
+          <router-link class="dropdown-panel__link" to="/start" @click="closeDropdown">
+            <i class="fas fa-rocket" />
+            <span>快速开始</span>
+          </router-link>
+          <router-link class="dropdown-panel__link" to="/api-stats" @click="closeDropdown">
+            <i class="fas fa-chart-bar" />
+            <span>实时数据</span>
+          </router-link>
+        </div>
+      </div>
+    </div>
 
     <!-- Hero -->
     <section id="top" class="hero">
@@ -144,7 +185,7 @@
         <h1 class="hero__title">一个简易模型中转服务</h1>
         <p class="hero__sub">
           统一调度 Claude、Gemini、OpenAI、Bedrock、Azure 与更多平台。<br />
-          为团队打造的高性能、可观测的 AI API 中转。
+          为个人打造的全方面、可观测的 AI API 中转。
         </p>
         <div class="hero__cta">
           <router-link class="btn btn--primary" to="/login">进入控制台</router-link>
@@ -252,7 +293,16 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 const scrolled = ref(false)
-const tutorialOpen = ref(false)
+const activeDropdown = ref(null)
+const openDropdown = (name) => {
+  activeDropdown.value = name
+}
+const toggleDropdown = (name) => {
+  activeDropdown.value = activeDropdown.value === name ? null : name
+}
+const closeDropdown = () => {
+  activeDropdown.value = null
+}
 const bars = [40, 70, 55, 85, 60, 90, 50, 75, 65, 95, 70, 80]
 
 const cliTools = [

@@ -6,6 +6,7 @@ import { APP_CONFIG, showToast } from '@/utils/tools'
 // 路由懒加载
 const LandingView = () => import('@/views/LandingView.vue')
 const TutorialLandingView = () => import('@/views/TutorialLandingView.vue')
+const StartView = () => import('@/views/StartView.vue')
 const LoginView = () => import('@/views/LoginView.vue')
 const UserLoginView = () => import('@/views/UserLoginView.vue')
 const UserDashboardView = () => import('@/views/UserDashboardView.vue')
@@ -18,7 +19,7 @@ const AccountsView = () => import('@/views/AccountsView.vue')
 const AccountUsageRecordsView = () => import('@/views/AccountUsageRecordsView.vue')
 const SettingsView = () => import('@/views/SettingsView.vue')
 const ApiStatsView = () => import('@/views/ApiStatsView.vue')
-const QuotaCardsView = () => import('@/views/QuotaCardsView.vue')
+
 const RequestDetailsView = () => import('@/views/RequestDetailsView.vue')
 
 const routes = [
@@ -32,6 +33,12 @@ const routes = [
     path: '/tutorial',
     name: 'Tutorial',
     component: TutorialLandingView,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/start',
+    name: 'Start',
+    component: StartView,
     meta: { requiresAuth: false }
   },
   {
@@ -147,18 +154,6 @@ const routes = [
     ]
   },
   {
-    path: '/quota-cards',
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [
-      {
-        path: '',
-        name: 'QuotaCards',
-        component: QuotaCardsView
-      }
-    ]
-  },
-  {
     path: '/request-details',
     component: MainLayout,
     meta: { requiresAuth: true },
@@ -179,7 +174,12 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(APP_CONFIG.basePath),
-  routes
+  routes,
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
+    return { top: 0 }
+  }
 })
 
 // 路由守卫
