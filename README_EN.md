@@ -1,4 +1,4 @@
-# Claude Relay Service
+# Relay Service
 
 <div align="center">
 
@@ -507,7 +507,7 @@ Configure the Details as follows:
 | Access List           | Publicly Accessible      |
 
 > Note:
-> - Ensure Claude Relay Service **listens on `0.0.0.0`, container IP, or host IP** to allow NPM internal network connections.
+> - Ensure Relay Service **listens on `0.0.0.0`, container IP, or host IP** to allow NPM internal network connections.
 > - **Websockets Support and Cache Assets must be disabled**, otherwise SSE / streaming responses will fail.
 
 **2. Custom locations**
