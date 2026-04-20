@@ -1,10 +1,5 @@
 # Claude Relay Service
 
-> [!CAUTION]
-> **Security Update**: v1.1.248 and below contain a critical admin authentication bypass vulnerability allowing unauthorized access to the admin panel.
->
-> **Please update to v1.1.249+ immediately**, or migrate to the next-generation project **[CRS 2.0 (sub2api)](https://github.com/Wei-Shaw/sub2api)**
-
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -12,18 +7,14 @@
 [![Redis](https://img.shields.io/badge/Redis-6+-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
-**🔐 Self-hosted Claude API relay service with multi-account management** 
+**🔐 Self-hosted Claude API relay service with multi-account management**
 
-[中文文档](README.md) • [Preview](https://demo.pincc.ai/admin-next/login) • [Telegram Channel](https://t.me/claude_relay_service)
+[中文文档](README.md)
 
 </div>
 
----
-
-## ⭐ If You Find It Useful, Please Give It a Star!
-
-> Open source is not easy, your Star is my motivation to continue updating 🚀  
-> Join [Telegram Channel](https://t.me/claude_relay_service) for the latest updates
+> Released under the **MIT License**. Derived from the upstream project [Wei-Shaw/claude-relay-service](https://github.com/Wei-Shaw/claude-relay-service) at **v1.1.300**.
+> The original copyright notice is retained in [LICENSE](LICENSE).
 
 ---
 
@@ -624,13 +615,17 @@ Both solutions are suitable for production deployment. If you use a Docker envir
 ---
 
 ## 📄 License
-This project uses the [MIT License](LICENSE).
+
+This project is licensed under the [MIT License](LICENSE).
+
+### Attribution
+
+This repository is a fork of [Wei-Shaw/claude-relay-service](https://github.com/Wei-Shaw/claude-relay-service) at **v1.1.300**, redistributed under the MIT License.
+The original copyright notice `Copyright (c) 2025 Wesley Liddick` and full MIT license text are retained in the [LICENSE](LICENSE) file.
 
 ---
 
 <div align="center">
-
-**⭐ If you find it useful, please give it a Star, this is the greatest encouragement to the author!**
 
 **🤝 Feel free to submit Issues for problems, welcome PRs for improvement suggestions**
 

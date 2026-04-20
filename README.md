@@ -1,37 +1,20 @@
 # Claude Relay Service
 
-> [!CAUTION]
-> **安全更新通知**：v1.1.248 及以下版本存在严重的管理员认证绕过漏洞，攻击者可未授权访问管理面板。
->
-> **请立即更新到 v1.1.249+ 版本**，或迁移到新一代项目 **[CRS 2.0 (sub2api)](https://github.com/Wei-Shaw/sub2api)**
-
 <div align="center">
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Redis](https://img.shields.io/badge/Redis-6+-red.svg)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![Docker Build](https://github.com/Wei-Shaw/claude-relay-service/actions/workflows/auto-release-pipeline.yml/badge.svg)](https://github.com/Wei-Shaw/claude-relay-service/actions/workflows/auto-release-pipeline.yml)
-[![Docker Pulls](https://img.shields.io/docker/pulls/weishaw/claude-relay-service)](https://hub.docker.com/r/weishaw/claude-relay-service)
 
-**🔐 自行搭建Claude API中转服务，支持多账户管理**
+**🔐 自行搭建 Claude API 中转服务，支持多账户管理**
 
-[English](README_EN.md) • [快速开始](https://pincc.ai/) • [演示站点](https://demo.pincc.ai/admin-next/login) • [公告频道](https://t.me/claude_relay_service)
+[English](README_EN.md)
 
 </div>
 
----
-
-## 💎 Claude/Codex 拼车服务推荐
-
-<div align="center">
-
-| 平台 | 服务 | 介绍 |
-|:---|:---|:---|
-| **[pincc.ai](https://pincc.ai/)** | <small>✅ Claude Code<br>✅ Codex CLI</small> | 提供稳定的 Codex CLI 拼车服务<br><br> **全新上线 2API 渠道**：接入CC的效果媲美官方 Anthropic Console 账号，暂不支持 PDF 识别功能 <br>💰 单价：0.8元=1美金额度 |
-
-
-</div>
+> 本项目基于 **MIT 协议** 开源，源自上游项目 [Wei-Shaw/claude-relay-service](https://github.com/Wei-Shaw/claude-relay-service) **v1.1.300** 版本。
+> 原始版权信息保留于 [LICENSE](LICENSE)。
 
 ---
 
@@ -123,65 +106,6 @@
 
 ---
 
-## 🚀 脚本部署（推荐）
-
-推荐使用管理脚本进行一键部署，简单快捷，自动处理所有依赖和配置。
-
-### 快速安装
-
-```bash
-curl -fsSL https://pincc.ai/manage.sh -o manage.sh && chmod +x manage.sh && ./manage.sh install
-```
-
-### 脚本功能
-
-- ✅ **一键安装**: 自动检测系统环境，安装 Node.js 18+、Redis 等依赖
-- ✅ **交互式配置**: 友好的配置向导，设置端口、Redis 连接等
-- ✅ **自动启动**: 安装完成后自动启动服务并显示访问地址
-- ✅ **便捷管理**: 通过 `crs` 命令随时管理服务状态
-
-### 管理命令
-
-```bash
-crs install   # 安装服务
-crs start     # 启动服务
-crs stop      # 停止服务
-crs restart   # 重启服务
-crs status    # 查看状态
-crs update    # 更新服务
-crs uninstall # 卸载服务
-```
-
-### 安装示例
-
-```bash
-$ crs install
-
-# 会依次询问：
-安装目录 (默认: ~/claude-relay-service):
-服务端口 (默认: 3000): 8080
-Redis 地址 (默认: localhost):
-Redis 端口 (默认: 6379):
-Redis 密码 (默认: 无密码):
-
-# 安装完成后自动启动并显示：
-服务已成功安装并启动！
-
-访问地址：
-  本地 Web: http://localhost:8080/web
-  公网 Web: http://YOUR_IP:8080/web
-
-管理员账号信息已保存到: data/init.json
-```
-
-### 系统要求
-
-- 支持系统: Ubuntu/Debian、CentOS/RedHat、Arch Linux、macOS
-- 自动安装 Node.js 18+ 和 Redis
-- Redis 使用系统默认位置，数据独立于应用
-
----
-
 ## 📦 手动部署
 
 ### 第一步：环境准备
@@ -215,7 +139,7 @@ sudo systemctl start redis
 
 ```bash
 # 下载项目
-git clone https://github.com/Wei-Shaw//claude-relay-service.git
+git clone https://github.com/Wei-Shaw/claude-relay-service.git
 cd claude-relay-service
 
 # 安装依赖
@@ -290,13 +214,12 @@ npm run service:status
 
 ### Docker compose
 
-#### 第一步：下载构建docker-compose.yml文件的脚本并执行
-```bash
-curl -fsSL https://pincc.ai/crs-compose.sh -o crs-compose.sh && chmod +x crs-compose.sh && ./crs-compose.sh
-```
+项目根目录已提供 `docker-compose.yml`，克隆仓库后直接启动即可：
 
-#### 第二步：启动
 ```bash
+git clone https://github.com/Wei-Shaw/claude-relay-service.git
+cd claude-relay-service
+cp .env.example .env   # 编辑 JWT_SECRET / ENCRYPTION_KEY 等必填项
 docker-compose up -d
 ```
 
@@ -1010,14 +933,17 @@ proxy_request_buffering off;
 
 ## 📄 许可证
 
-本项目采用 [MIT许可证](LICENSE)。
+本项目采用 [MIT 许可证](LICENSE)。
+
+### 来源声明
+
+本仓库 fork 自 [Wei-Shaw/claude-relay-service](https://github.com/Wei-Shaw/claude-relay-service) **v1.1.300** 版本，遵循 MIT 协议继续开源分发。
+原版权声明 `Copyright (c) 2025 Wesley Liddick` 及 MIT 许可全文保留于 [LICENSE](LICENSE) 文件中。
 
 ---
 
 <div align="center">
 
-**⭐ 觉得有用的话给个Star呗，这是对作者最大的鼓励！**
-
-**🤝 有问题欢迎提Issue，有改进建议欢迎PR**
+**🤝 有问题欢迎提 Issue，有改进建议欢迎 PR**
 
 </div>
