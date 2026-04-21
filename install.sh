@@ -9,7 +9,7 @@ set -euo pipefail
 INSTALL_DIR="${1:-/opt/relay-service}"
 PORT="${2:-3000}"
 NODE_MAJOR=20
-SERVICE_USER="relay-service"
+SERVICE_USER="root"           # 服务以 root 运行 (按需求)
 SERVICE_NAME="relay-service"
 REPO_URL="https://github.com/dipinllx-source/relay-service.git"
 
@@ -284,14 +284,24 @@ setup_redis_existing() {
 if [[ $REDIS_MODE == new ]]; then setup_redis_new; else setup_redis_existing; fi
 
 # ---------- 4. 系统用户 + 源码 ----------
-if ! id "$SERVICE_USER" >/dev/null 2>&1; then
+if [[ $SERVICE_USER != root ]] && ! id "$SERVICE_USER" >/dev/null 2>&1; then
   log "创建系统用户 $SERVICE_USER"
   useradd --system --home "$INSTALL_DIR" --shell /usr/sbin/nologin "$SERVICE_USER" \
     || useradd -r -d "$INSTALL_DIR" -s /sbin/nologin "$SERVICE_USER"
 fi
 
+# 以服务身份执行命令. root 时无需 sudo (部分精简镜像里没装 sudo)
+if [[ $SERVICE_USER == root ]]; then
+  run_as_svc() { bash -lc "$*"; }
+else
+  run_as_svc() { sudo -u "$SERVICE_USER" bash -lc "$*"; }
+fi
+
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   log "更新源码"
+  # 旧安装可能以不同用户执行, 先把归属调整到本次的 SERVICE_USER 再做 git 操作,
+  # 否则 git >=2.35 对 dubious ownership 会报错
+  chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR" 2>/dev/null || true
   git -C "$INSTALL_DIR" pull --ff-only
 else
   log "克隆仓库到 $INSTALL_DIR"
@@ -336,16 +346,16 @@ chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 
 # ---------- 6. 依赖 + 前端构建 + 管理员初始化 ----------
 log "安装后端依赖 (可能需要几分钟)"
-sudo -u "$SERVICE_USER" bash -lc "cd '$INSTALL_DIR' && npm install --omit=dev --no-audit --no-fund"
+run_as_svc "cd '$INSTALL_DIR' && npm install --omit=dev --no-audit --no-fund"
 log "安装并构建前端 SPA"
-sudo -u "$SERVICE_USER" bash -lc "cd '$INSTALL_DIR' && npm run install:web --silent && npm run build:web --silent" \
+run_as_svc "cd '$INSTALL_DIR' && npm run install:web --silent && npm run build:web --silent" \
   || die "前端构建失败 — /admin-next/ 需要 dist 才能工作。修复后重跑 npm run build:web 再继续。"
 
 # build 必须产出 dist/index.html, 否则服务启动时会 skip /admin-next 路由
 [[ -f "${INSTALL_DIR}/web/admin-spa/dist/index.html" ]] \
   || die "web/admin-spa/dist/index.html 缺失, 前端构建不完整, 中止安装"
 log "运行 setup 初始化管理员凭据"
-sudo -u "$SERVICE_USER" bash -lc "cd '$INSTALL_DIR' && npm run setup" || warn "setup 异常, 首次启动时会重试"
+run_as_svc "cd '$INSTALL_DIR' && npm run setup" || warn "setup 异常, 首次启动时会重试"
 
 # ---------- 7. systemd 单元 ----------
 log "写入 systemd 服务 ${SERVICE_NAME}"
@@ -435,8 +445,14 @@ if [[ $REDIS_MODE == new ]]; then
 fi
 echo
 echo "  升级:"
-echo "    cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} git pull"
-echo "    sudo -u ${SERVICE_USER} npm install --omit=dev"
-echo "    sudo -u ${SERVICE_USER} npm run build:web"
+if [[ $SERVICE_USER == root ]]; then
+  echo "    cd ${INSTALL_DIR} && git pull"
+  echo "    npm install --omit=dev"
+  echo "    npm run build:web"
+else
+  echo "    cd ${INSTALL_DIR} && sudo -u ${SERVICE_USER} git pull"
+  echo "    sudo -u ${SERVICE_USER} npm install --omit=dev"
+  echo "    sudo -u ${SERVICE_USER} npm run build:web"
+fi
 echo "    systemctl restart ${SERVICE_NAME}"
 echo "════════════════════════════════════════════════════════"
