@@ -168,6 +168,11 @@ const routes = [
         path: 'https',
         name: 'SettingsHttps',
         component: SettingsView
+      },
+      {
+        path: 'storage',
+        name: 'SettingsStorage',
+        component: SettingsView
       }
     ]
   },

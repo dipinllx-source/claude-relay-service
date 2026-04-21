@@ -1321,6 +1321,11 @@
         <div v-show="activeSection === 'https'">
           <HttpsStatusSection />
         </div>
+
+        <!-- 存储健康部分（只读） -->
+        <div v-show="activeSection === 'storage'">
+          <StorageHealthSection />
+        </div>
       </div>
     </div>
   </div>
@@ -1925,6 +1930,7 @@ import * as httpApis from '@/utils/http_apis'
 import ConfirmModal from '@/components/common/ConfirmModal.vue'
 import ModelPricingSection from '@/components/settings/ModelPricingSection.vue'
 import HttpsStatusSection from '@/components/settings/HttpsStatusSection.vue'
+import StorageHealthSection from '@/components/settings/StorageHealthSection.vue'
 
 // 定义组件名称，用于keep-alive排除
 defineOptions({
@@ -1947,7 +1953,8 @@ const pathToSection = {
   '/settings/claude': 'claude',
   '/settings/service-rates': 'serviceRates',
   '/settings/model-pricing': 'modelPricing',
-  '/settings/https': 'https'
+  '/settings/https': 'https',
+  '/settings/storage': 'storage'
 }
 const sectionMeta = {
   branding: { title: '品牌设置', subtitle: '网站定制与展示' },
@@ -1955,7 +1962,8 @@ const sectionMeta = {
   claude: { title: 'Claude 转发', subtitle: 'Claude 账户与请求转发配置' },
   serviceRates: { title: '服务倍率', subtitle: '计费倍率配置' },
   modelPricing: { title: '模型价格', subtitle: '各模型单价管理' },
-  https: { title: 'HTTPS 状态', subtitle: '证书与传输加密（只读）' }
+  https: { title: 'HTTPS 状态', subtitle: '证书与传输加密（只读）' },
+  storage: { title: '存储健康', subtitle: '元数据后端 / flusher / 备份（只读）' }
 }
 const activeSection = ref(pathToSection[route.path] || 'branding')
 const sectionTitle = computed(() => sectionMeta[activeSection.value]?.title || '系统设置')

@@ -108,22 +108,14 @@
 
 ## 阶段 10：Admin UI 存储健康面板（本变更范围内）
 
-- [ ] 10.1 后端：新增 `GET /admin/storage/status` 只读接口（admin 鉴权），返回字段：
-  - `backend: redis | sqlite`
-  - `redis: { connected, usedMemory, dbSize, lastSaveAt }`
-  - `sqlite: { fileSizeBytes, walSizeBytes, journalMode, integrityCheck, rowCounts }`（仅 backend=sqlite 时）
-  - `flusher: { lastSuccessAt, lastErrorAt, lastErrorMessage, pendingRuntimeKeyCount }`
-  - `backup: { lastBackupAt, lastBackupSizeBytes, backupDir }`
-- [ ] 10.2 后端：`storageStatusService.js` 聚合上述字段（integrity check 缓存 60s 避免频繁执行）
-- [ ] 10.3 前端：新增 `web/admin-spa/src/components/settings/StorageHealthSection.vue`
-  - 放在 `SettingsView.vue` 下方，紧接现有 "HTTPS 状态" 卡片后
-  - 玻璃态 / Apple 风格 / 暗黑模式完整支持
-  - 每 10 秒刷新
-- [ ] 10.4 前端：`http_apis.js` 增加 `getStorageStatus()`
-- [ ] 10.5 前端：integrity check 失败或 flusher 连续失败时以告警色渲染
-- [ ] 10.6 前端：文案国际化（中文主文案，现有项目无 i18n 框架则保持中文）
-- [ ] 10.7 单测：`tests/storageStatusService.test.js`
-- [ ] 10.8 组件测试：`StorageHealthSection` 的 loading / error / sqlite / redis 四种状态快照
+- [x] 10.1 后端：`GET /admin/storage/status` 只读接口，admin 鉴权，返回 backend / redis / sqlite / flusher / backup 字段
+- [x] 10.2 `src/services/storageStatusService.js`：聚合所有字段；integrity_check 60s 缓存
+- [x] 10.3 前端 `StorageHealthSection.vue`：玻璃态 + 暗黑模式；每 10 秒刷新；挂在 SettingsView 的 `/settings/storage` 路由
+- [x] 10.4 `http_apis.js` 新增 `getStorageStatus`
+- [x] 10.5 integrity check 失败卡片红框；flusher 最近一次是失败时面板黄色告警 + 错误 hover tooltip
+- [x] 10.6 中文文案（现有项目无 i18n 框架）
+- [x] 10.7 后端单测 `tests/services/storageStatusService.test.js` 4 cases（redis backend / sqlite backend / flusher surface / integrity cache）
+- [ ] 10.8 **[省略]** 组件快照测试（前端没有配置测试框架；保留为后续可选）
 
 ## 阶段 11：观察期与清理
 

@@ -39,6 +39,9 @@ export const getServiceRatesApi = () => request({ url: '/apiStats/service-rates'
 
 // 🔒 HTTPS 状态（只读）
 export const getHttpsStatusApi = () => request({ url: '/admin/https/status', method: 'GET' })
+
+// 🗄️ 元数据存储健康状态（只读）—— StorageHealthSection 使用
+export const getStorageStatus = () => request({ url: '/admin/storage/status', method: 'GET' })
 // 下载 ca.crt：使用 blob 响应并在前端触发下载，保留 Authorization 头
 export const downloadCaCertApi = async () => {
   const axios = (await import('axios')).default

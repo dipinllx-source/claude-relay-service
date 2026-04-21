@@ -171,6 +171,10 @@
             <i class="fas fa-lock" />
             <span>HTTPS 状态</span>
           </router-link>
+          <router-link class="admin-dropdown__link" to="/settings/storage" @click="closeDropdown">
+            <i class="fas fa-database" />
+            <span>存储健康</span>
+          </router-link>
         </div>
       </div>
     </div>
