@@ -81,6 +81,28 @@ data/init.json            # 管理员凭据
 - **加密存储**: 敏感数据（OAuth token、credentials）AES 加密存于 Redis
 - **流式响应**: SSE 传输，实时捕获 usage，客户端断开时 AbortController 清理资源
 
+## 元数据存储（Redis / SQLite）
+
+`METADATA_BACKEND` 环境变量决定账号 / API Key / 标签的 source of truth：
+
+| backend | 职能划分 | 适合场景 |
+|---|---|---|
+| `redis`（默认） | 所有元数据 + 热状态都在 Redis | 自管 Redis、可持久化 |
+| `sqlite` | 元数据 → `data/metadata.db` (WAL)；Redis 仅作缓存 + 热状态 | Redis 是托管服务或纯缓存 |
+
+**分层边界**（仓储接口 `src/storage/repositories/`）：
+- `IApiKeyRepository` / `IAccountRepository` / `ITagRepository` — 业务代码只依赖接口
+- `Redis*Repository` — 现有 Redis 语义的薄封装
+- `Sqlite*Repository` — SQLite 实现，Hybrid schema（核心列 + `data` JSON）
+- `Caching*Repository` — 装饰器：Redis read-through cache（默认 TTL 60s）
+- `repositories/index.js` — 根据 `config.metadata.backend` 装配
+
+**保留在 Redis 的职能**（永远不迁）：并发计数、限流窗口、粘性会话、实时 usage 统计、API Key 累计统计缓冲（30 秒 flush）。
+
+**运维脚本**：`npm run data:migrate:dry` → `npm run data:migrate`（迁移）；`npm run data:backup`（热备份）；`npm run data:rollback`（反向导出）；`npm run data:cleanup:confirm`（观察期后清理 Redis 旧数据）。
+
+**约束**：SQLite backend 仅支持**单实例部署**；Docker 必须挂 `data/` volume。详见 `docs/metadata-storage-guide/README.md`。
+
 ## 开发规范
 
 ### 代码风格

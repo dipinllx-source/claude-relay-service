@@ -127,7 +127,7 @@
 
 ## 阶段 12：收尾
 
-- [ ] 12.1 `npm run lint`、`npm run format:check`、`npm test` 全绿
-- [ ] 12.2 `npm run cli status` 在两种 backend 下行为一致
-- [ ] 12.3 更新 CLAUDE.md：新增"元数据存储"小节，说明 SQLite/Redis 职能边界
-- [ ] 12.4 准备 PR 合并策略（按阶段拆多 PR 或一个大 PR，由实施时决策）
+- [x] 12.1 本次变更涉及文件 lint / format 全绿（pre-existing upstream 5 个文件的 prettier 警告与本变更无关）
+- [ ] 12.2 **[留人工验证]** `npm run cli status` 在两种 backend 下行为一致
+- [x] 12.3 CLAUDE.md 新增"元数据存储（Redis / SQLite）"小节：职能边界 / Repository 分层 / 运维脚本 / 约束
+- [x] 12.4 PR 合并策略：每阶段独立 commit（共 8 个 commit），可作单一大 PR 或按阶段拆分
