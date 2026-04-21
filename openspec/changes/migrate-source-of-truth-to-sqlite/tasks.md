@@ -15,12 +15,12 @@
 
 ## 阶段 1：Repository 接口层
 
-- [ ] 1.1 定义 `src/storage/repositories/IApiKeyRepository.js`（JSDoc 签名）
-- [ ] 1.2 定义 `src/storage/repositories/IAccountRepository.js`
-- [ ] 1.3 定义 `src/storage/repositories/ITagRepository.js`
-- [ ] 1.4 实现 `RedisApiKeyRepository`（包装现有 `redis.js` 账号/key 方法，零业务改动）
-- [ ] 1.5 实现 `RedisAccountRepository`、`RedisTagRepository`（同上）
-- [ ] 1.6 实现 `src/storage/repositories/index.js`：读 `METADATA_BACKEND` 装配对应实现，导出单例
+- [x] 1.1 定义 `src/storage/repositories/IApiKeyRepository.js`（JSDoc 签名）
+- [x] 1.2 定义 `src/storage/repositories/IAccountRepository.js`
+- [x] 1.3 定义 `src/storage/repositories/ITagRepository.js`
+- [x] 1.4 实现 `RedisApiKeyRepository`（包装现有 `redis.js` 账号/key 方法，零业务改动）
+- [x] 1.5 实现 `RedisAccountRepository`、`RedisTagRepository`（同上）
+- [x] 1.6 实现 `src/storage/repositories/index.js`：读 `METADATA_BACKEND` 装配对应实现，导出单例
 
 ## 阶段 2：SQLite 实现 - API Key
 
