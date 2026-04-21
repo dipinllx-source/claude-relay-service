@@ -37,13 +37,13 @@
 
 ## 阶段 3：SQLite 实现 - Account
 
-- [ ] 3.1 DDL：`accounts` 表 + platform / status 索引
-- [ ] 3.2 `SqliteAccountRepository.findById(id)`（跨平台单点查询）
-- [ ] 3.3 `SqliteAccountRepository.listByPlatform(platform)`
-- [ ] 3.4 `SqliteAccountRepository.create(platform, account)`（credentials 加密字符串直存）
-- [ ] 3.5 `SqliteAccountRepository.update(id, patch)`（JSON 列 diff 更新）
-- [ ] 3.6 `SqliteAccountRepository.delete(id)`
-- [ ] 3.7 单元测试：覆盖所有 11 个平台的 CRUD 流程（用 fixture 遍历）
+- [x] 3.1 DDL：`accounts` 表（Hybrid schema：id / platform / name / status / data JSON）
+- [x] 3.2 `SqliteAccountRepository.findById(platform, id)`
+- [x] 3.3 `SqliteAccountRepository.getAllByPlatform(platform)`
+- [x] 3.4 `SqliteAccountRepository.save(platform, id, data)` — credentials 密文直存 data JSON
+- [x] 3.5 save 字段级合并（data JSON merge）
+- [x] 3.6 `SqliteAccountRepository.delete(platform, id)`
+- [x] 3.7 单元测试：覆盖 10 个平台的 CRUD 流程（与 proposal/spec 一致）
 
 ## 阶段 4：Cache 装饰器
 
