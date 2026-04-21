@@ -46,6 +46,12 @@
     "data:export:encrypted": "node scripts/data-transfer-enhanced.js export --decrypt=false",
     "data:import:enhanced": "node scripts/data-transfer-enhanced.js import",
     "data:debug": "node scripts/debug-redis-keys.js",
+    "data:migrate": "node scripts/migrate-redis-to-sqlite.js",
+    "data:migrate:dry": "node scripts/migrate-redis-to-sqlite.js --dry-run",
+    "data:rollback": "node scripts/rollback-sqlite-to-redis.js",
+    "data:cleanup": "node scripts/cleanup-redis-metadata.js",
+    "data:cleanup:confirm": "node scripts/cleanup-redis-metadata.js --confirm",
+    "data:backup": "node scripts/backup-metadata.js",
     "test:pricing-fallback": "node scripts/test-pricing-fallback.js"
   },
   "dependencies": {

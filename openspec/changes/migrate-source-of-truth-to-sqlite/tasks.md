@@ -90,21 +90,21 @@
 
 ## 阶段 8：迁移工具
 
-- [ ] 8.1 `scripts/migrate-redis-to-sqlite.js`：读 Redis 所有账号（按 platform）+ API Key + tag，批量写 SQLite
-- [ ] 8.2 支持 `--dry-run` 模式：只打印计划，不写库
-- [ ] 8.3 完成后输出对比报告：各类记录数 + 随机 10 条双读比对
-- [ ] 8.4 迁移脚本幂等：重复运行不破坏 SQLite 现有数据
-- [ ] 8.5 `scripts/rollback-sqlite-to-redis.js`：反向导出工具（应急）
-- [ ] 8.6 `scripts/cleanup-redis-metadata.js`：观察期后清理 Redis 中已迁移的 hash；要求 `--confirm` 参数 + 明确提示
-- [ ] 8.7 `npm run data:migrate` / `data:rollback` / `data:cleanup` 三个脚本入口
+- [x] 8.1 `scripts/migrate-redis-to-sqlite.js`：Redis → SQLite 批量迁移（API Keys + 10 platforms + Tags）
+- [x] 8.2 `--dry-run` 模式：仅打印计划，不改 SQLite
+- [x] 8.3 迁移完成后输出对比报告（src / dst 计数 + 前 5 条 sample diff）
+- [x] 8.4 幂等：基于 save 的字段级 upsert 语义，重复运行结果一致
+- [x] 8.5 `scripts/rollback-sqlite-to-redis.js`：反向导出
+- [x] 8.6 `scripts/cleanup-redis-metadata.js`：默认 dry-run；`--confirm` 真删；明确列出哪些 key 保留（runtime/cache/usage/session 等）
+- [x] 8.7 `npm run data:migrate` / `data:migrate:dry` / `data:rollback` / `data:cleanup` / `data:cleanup:confirm` 入口
 
 ## 阶段 9：备份与运维
 
-- [ ] 9.1 实现 `scripts/backup-metadata.js`：调用 SQLite `.backup` API，输出到 `data/backup/metadata-<timestamp>.db`
-- [ ] 9.2 `npm run data:backup` 入口
-- [ ] 9.3 `install.sh` 新增自动 nightly backup 的 cron 说明（可选配置）
-- [ ] 9.4 文档：`docs/metadata-storage-guide/README.md`（备份、恢复、迁移、回滚步骤）
-- [ ] 9.5 README.md 补充一段说明 metadata backend 切换的前后注意事项
+- [x] 9.1 `scripts/backup-metadata.js`：SQLite `.backup` API → `data/backup/metadata-<ISO ts>.db`（0600）
+- [x] 9.2 `npm run data:backup` 入口
+- [ ] 9.3 **[延至阶段 6 或后续]** `install.sh` nightly backup cron 说明（非关键，可单独补）
+- [x] 9.4 `docs/metadata-storage-guide/README.md`：切换步骤、迁移、回滚、清理、备份、恢复、FAQ
+- [x] 9.5 README.md "元数据存储（Redis vs SQLite）" 小节 + 指向详细文档的链接
 
 ## 阶段 10：Admin UI 存储健康面板（本变更范围内）
 

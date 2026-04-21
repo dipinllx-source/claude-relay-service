@@ -743,6 +743,24 @@ redis-cli ping
 
 ---
 
+### 元数据存储（Redis vs SQLite）
+
+默认 `METADATA_BACKEND=redis`，账号 / API Key / 标签都放在 Redis 里。如果你的 Redis 是托管服务或纯缓存（不能依赖其持久化），可切换到 `sqlite`：
+
+```
+METADATA_BACKEND=sqlite
+SQLITE_PATH=./data/metadata.db
+SQLITE_STATS_FLUSH_INTERVAL=30
+```
+
+切换后 Redis 仍在使用，但降级为**缓存层 + 热状态**（并发计数、限流、会话、实时 usage 统计），即使 Redis 被重启 / 清空也不会丢失任何账号或 API Key。
+
+**切换步骤**：`npm run data:migrate:dry` → `npm run data:migrate` → 改 `.env` → 重启。详细流程见 [元数据存储运维指南](docs/metadata-storage-guide/README.md)。
+
+> ⚠️ SQLite 后端**仅支持单实例部署**；多进程同时写入会导致文件锁冲突。Docker 部署时 `data/` 必须挂 volume。
+
+---
+
 ### 反向代理部署指南
 
 在生产环境中，建议通过反向代理进行连接，以便使用自动 HTTPS、安全头部和性能优化。下面提供两种常用方案： **Caddy** 和 **Nginx Proxy Manager (NPM)**。
