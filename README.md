@@ -106,6 +106,65 @@
 
 ---
 
+## ⚡ 一键安装（推荐）
+
+仓库根目录提供 `install.sh`，适用于 **Ubuntu / Debian / CentOS / RHEL / Rocky / AlmaLinux / 阿里云 Linux**。脚本会自动安装 Node.js 20、Redis、克隆仓库、构建前端 SPA、生成 `.env`、写入 systemd 单元并启动服务。
+
+### 一行拉起
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dipinllx-source/relay-service/main/install.sh | sudo bash
+```
+
+或先下载再执行（方便查看/自定义参数）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dipinllx-source/relay-service/main/install.sh -o install.sh
+sudo bash install.sh                          # 默认: /opt/relay-service, 端口 3000
+sudo bash install.sh /opt/relay-service 8080  # 自定义安装目录和端口
+```
+
+### 交互式 / 非交互式
+
+- **交互式终端**：脚本会提示端口、管理员用户名/密码（>=8 字符，含数字/字母/特殊字符）、Redis 部署方式（已有实例 / 新启独立实例）。回车可跳过用自动生成的值。
+- **非交互式终端**（如管道执行）：自动走默认值——新建一个仅本地访问的独立 Redis 实例（随机密码、端口 6380 起自动避让），管理员账号密码随机生成。安装完成后从 `data/init.json` 查看凭据。
+
+### 安装完成后
+
+```bash
+systemctl status relay-service     # 服务状态
+systemctl restart relay-service    # 重启
+journalctl -u relay-service -f     # 实时日志
+cat /opt/relay-service/data/init.json  # 首次管理员凭据
+```
+
+管理面板访问：`http://<服务器IP>:<端口>/admin-next/`。
+
+### 升级
+
+```bash
+cd /opt/relay-service
+git pull
+npm install --omit=dev
+npm run build:web
+systemctl restart relay-service
+```
+
+### 重装行为（重要）
+
+重复运行 `install.sh` 是安全的：
+- `JWT_SECRET` / `ENCRYPTION_KEY` **保留不变**（否则旧会话、旧 AES 密文将全部失效）
+- Redis 地址/端口/密码会根据本次执行结果同步回 `.env`（`setup_redis_new` 每次会生成新的 Redis 密码并覆盖 `redis.conf`，同步这一步避免两边不一致）
+- 旧 systemd unit 会被先禁用再替换，防止 `Restart=always` 的残留实例干扰
+
+### 一键安装失败时
+
+前端构建失败是最常见问题（lint / prettier）。脚本会把 `npm run install:web && npm run build:web` 的完整输出记在 `/tmp/relay-install-build.XXXXXX.log`，失败时自动打印最后 60 行到 stderr 并给出修复命令。
+
+如需手动控制流程，见下方"📦 手动部署"。
+
+---
+
 ## 📦 手动部署
 
 ### 第一步：环境准备

@@ -110,6 +110,65 @@ If you have any of these concerns, this project might be suitable for you.
 
 ---
 
+## ⚡ One-Click Install (Recommended)
+
+An `install.sh` script is provided at the repo root for **Ubuntu / Debian / CentOS / RHEL / Rocky / AlmaLinux / Alibaba Cloud Linux**. It installs Node.js 20 + Redis, clones the repo, builds the frontend SPA, generates `.env`, writes the systemd unit, and starts the service.
+
+### One-liner
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dipinllx-source/relay-service/main/install.sh | sudo bash
+```
+
+Or download first (to review / pass custom args):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dipinllx-source/relay-service/main/install.sh -o install.sh
+sudo bash install.sh                          # default: /opt/relay-service, port 3000
+sudo bash install.sh /opt/relay-service 8080  # custom install dir & port
+```
+
+### Interactive vs non-interactive
+
+- **Interactive TTY**: prompts for port, admin username/password (≥8 chars with digit/letter/special), Redis mode (existing instance / new dedicated instance). Blank = auto-generate.
+- **Non-interactive** (e.g. piped): defaults to launching a new local-only Redis instance (random password, port auto-picked from 6380) and generates random admin credentials. Check `data/init.json` after install.
+
+### After install
+
+```bash
+systemctl status relay-service     # status
+systemctl restart relay-service    # restart
+journalctl -u relay-service -f     # live logs
+cat /opt/relay-service/data/init.json  # initial admin credentials
+```
+
+Admin panel: `http://<server-ip>:<port>/admin-next/`
+
+### Upgrade
+
+```bash
+cd /opt/relay-service
+git pull
+npm install --omit=dev
+npm run build:web
+systemctl restart relay-service
+```
+
+### Re-running `install.sh` (important)
+
+Re-running is safe:
+- `JWT_SECRET` / `ENCRYPTION_KEY` are **preserved** (regenerating would invalidate all sessions and AES-encrypted records).
+- Redis host/port/password are synced back into `.env` on every run (`setup_redis_new` regenerates the Redis password and rewrites `redis.conf` each time; the sync step prevents drift between the two).
+- Stale systemd units are disabled and replaced to avoid `Restart=always` leftovers interfering.
+
+### When install fails
+
+Frontend build failures (lint/prettier) are the most common case. The script captures the full `npm run install:web && npm run build:web` output to `/tmp/relay-install-build.XXXXXX.log` and, on failure, dumps the last 60 lines to stderr along with the exact fix command.
+
+For full manual control, see "📦 Manual Deployment" below.
+
+---
+
 ## 📦 Manual Deployment
 
 ### Step 1: Environment Setup
