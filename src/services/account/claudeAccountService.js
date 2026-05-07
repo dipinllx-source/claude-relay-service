@@ -25,7 +25,9 @@ const {
 } = require('../../utils/tempUnavailablePolicy')
 const fs = require('fs')
 const nodePath = require('path')
-const { execSync } = require('child_process')
+const { execFile } = require('child_process')
+const { promisify } = require('util')
+const execFileAsync = promisify(execFile)
 
 /**
  * Check if account is Pro (not Max)
@@ -79,29 +81,28 @@ class ClaudeAccountService {
     )
   }
 
-
   // 📂 获取或设置 credentials.json 文件路径
   async getCredentialsPath() {
     try {
       const client = redis.getClientSafe()
-      const storedPath = await client.get("claude:credentials_path")
+      const storedPath = await client.get('claude:credentials_path')
       if (storedPath) return storedPath
-      const defaultPath = nodePath.join(process.env.HOME || "/root", ".claude", ".credentials.json")
+      const defaultPath = nodePath.join(process.env.HOME || '/root', '.claude', '.credentials.json')
       return defaultPath
     } catch (error) {
-      logger.error("Failed to get credentials path:", error)
-      return nodePath.join(process.env.HOME || "/root", ".claude", ".credentials.json")
+      logger.error('Failed to get credentials path:', error)
+      return nodePath.join(process.env.HOME || '/root', '.claude', '.credentials.json')
     }
   }
 
   async setCredentialsPath(newPath) {
     try {
       const client = redis.getClientSafe()
-      await client.set("claude:credentials_path", newPath)
+      await client.set('claude:credentials_path', newPath)
       logger.info(`Credentials path updated to: ${newPath}`)
       return true
     } catch (error) {
-      logger.error("Failed to set credentials path:", error)
+      logger.error('Failed to set credentials path:', error)
       throw error
     }
   }
@@ -109,22 +110,24 @@ class ClaudeAccountService {
   // 📖 读取 .credentials.json 文件获取 Access Token 和 expiresAt
   async readCredentialsFile(customPath) {
     try {
-      const credentialsPath = customPath || await this.getCredentialsPath()
+      const credentialsPath = customPath || (await this.getCredentialsPath())
       if (!fs.existsSync(credentialsPath)) {
         throw new Error(`Credentials file not found: ${credentialsPath}`)
       }
-      const rawContent = fs.readFileSync(credentialsPath, "utf-8")
+      const rawContent = fs.readFileSync(credentialsPath, 'utf-8')
       const credentials = JSON.parse(rawContent)
       if (!credentials.claudeAiOauth) {
-        throw new Error("Invalid credentials file format: missing claudeAiOauth")
+        throw new Error('Invalid credentials file format: missing claudeAiOauth')
       }
-      const { accessToken, expiresAt, scopes, subscriptionType, rateLimitTier } = credentials.claudeAiOauth
+      const { accessToken, refreshToken, expiresAt, scopes, subscriptionType, rateLimitTier } =
+        credentials.claudeAiOauth
       if (!accessToken) {
-        throw new Error("Invalid credentials file: missing accessToken")
+        throw new Error('Invalid credentials file: missing accessToken')
       }
       logger.info(`Successfully read credentials from: ${credentialsPath}`)
       return {
         accessToken,
+        refreshToken: refreshToken || null,
         expiresAt: expiresAt || null,
         scopes: scopes || [],
         subscriptionType: subscriptionType || null,
@@ -132,89 +135,156 @@ class ClaudeAccountService {
         credentialsPath
       }
     } catch (error) {
-      logger.error("Failed to read credentials file:", error)
+      logger.error('Failed to read credentials file:', error)
       throw error
     }
   }
 
-  // 🔄 通过执行 claude 命令刷新 token，然后重新读取 credentials 文件
+  // 🔄 刷新入口：优先走 OAuth refresh_token grant，失败再 fallback 到 claude -p execSync
   async refreshTokenViaCredentials(accountId) {
+    // 优先级 1：OAuth refresh_token grant（如果 Redis 中有 refreshToken）
+    const initialAccountData = await redis.getClaudeAccount(accountId)
+    if (!initialAccountData || Object.keys(initialAccountData).length === 0) {
+      throw new Error('Account not found')
+    }
+    const existingRefreshToken = this._decryptSensitiveData(initialAccountData.refreshToken)
+    if (existingRefreshToken) {
+      try {
+        logger.info(`🔄 Trying OAuth refresh first for: ${initialAccountData.name} (${accountId})`)
+        const oauthResult = await this.refreshAccountToken(accountId)
+        if (oauthResult && oauthResult.success) {
+          return oauthResult
+        }
+      } catch (oauthError) {
+        logger.warn(
+          `⚠️ OAuth refresh failed for ${accountId}, falling back to credentials file: ${oauthError.message}`
+        )
+      }
+    } else {
+      logger.info(
+        `No refreshToken in Redis for ${accountId}, going directly to credentials-file fallback`
+      )
+    }
+
+    // 优先级 2 (fallback)：执行 claude 命令触发 CLI 自身刷新，再读 credentials 文件
     let lockAcquired = false
     try {
       const accountData = await redis.getClaudeAccount(accountId)
       if (!accountData || Object.keys(accountData).length === 0) {
-        throw new Error("Account not found")
+        throw new Error('Account not found')
       }
-      lockAcquired = await tokenRefreshService.acquireRefreshLock(accountId, "claude")
+      const previousAccessToken = this._decryptSensitiveData(accountData.accessToken)
+      lockAcquired = await tokenRefreshService.acquireRefreshLock(accountId, 'claude')
       if (!lockAcquired) {
-        logger.info(`Lock held - credentials refresh in progress for: ${accountData.name} (${accountId})`)
-        logRefreshSkipped(accountId, accountData.name, "claude", "already_locked")
+        logger.info(
+          `Lock held - credentials refresh in progress for: ${accountData.name} (${accountId})`
+        )
+        logRefreshSkipped(accountId, accountData.name, 'claude', 'already_locked')
         await new Promise((resolve) => setTimeout(resolve, 3000))
         const updatedData = await redis.getClaudeAccount(accountId)
         if (updatedData && updatedData.accessToken) {
           const accessToken = this._decryptSensitiveData(updatedData.accessToken)
           return { success: true, accessToken, expiresAt: updatedData.expiresAt }
         }
-        throw new Error("Credentials refresh in progress by another process")
+        throw new Error('Credentials refresh in progress by another process')
       }
-      logRefreshStart(accountId, accountData.name, "claude", "credentials_refresh")
-      logger.info(`Starting credentials-based refresh for account: ${accountData.name} (${accountId})`)
-      // Step 1: 执行 claude -p "hello world" 触发 token 刷新
-      logger.info("Executing claude -p hello world to trigger token refresh...")
+      logRefreshStart(accountId, accountData.name, 'claude', 'credentials_refresh')
+      logger.info(
+        `Starting credentials-based refresh for account: ${accountData.name} (${accountId})`
+      )
+      // Step 1: 执行 claude -p "hello world" 触发 token 刷新（异步，不阻塞事件循环）
+      logger.info('Executing claude -p hello world to trigger token refresh...')
       try {
-        execSync('claude -p "hello world"', { timeout: 60000, stdio: 'pipe', encoding: 'utf-8' })
-        logger.info("claude command executed successfully")
+        await execFileAsync('claude', ['-p', 'hello world'], {
+          timeout: 60000,
+          encoding: 'utf-8'
+        })
+        logger.info('claude command executed successfully')
       } catch (cmdError) {
-        logger.warn(`claude command exited with error (may still have refreshed): ${cmdError.message}`)
+        logger.warn(
+          `claude command exited with error (may still have refreshed): ${cmdError.message}`
+        )
       }
       // Step 2: 等待文件写入完成
       await new Promise((resolve) => setTimeout(resolve, 2000))
       // Step 3: 重新读取 .credentials.json
       const credentials = await this.readCredentialsFile()
-      // Step 4: 更新账户数据
+      // Step 3.5: 校验 token 是否真的变了（避免 CLI 没有真正刷新就被当成成功）
+      if (previousAccessToken && previousAccessToken === credentials.accessToken) {
+        throw new Error(
+          'Credentials refresh did not yield a new accessToken (Claude CLI considered local token still valid)'
+        )
+      }
+      // Step 4: 更新账户数据（含 refreshToken 持久化，让下次走 OAuth 路径）
       accountData.accessToken = this._encryptSensitiveData(credentials.accessToken)
-      accountData.expiresAt = credentials.expiresAt ? credentials.expiresAt.toString() : ""
+      if (credentials.refreshToken) {
+        accountData.refreshToken = this._encryptSensitiveData(credentials.refreshToken)
+      }
+      accountData.expiresAt = credentials.expiresAt ? credentials.expiresAt.toString() : ''
       accountData.lastRefreshAt = new Date().toISOString()
-      accountData.status = "active"
-      accountData.errorMessage = ""
+      accountData.status = 'active'
+      accountData.errorMessage = ''
       if (credentials.scopes && credentials.scopes.length > 0) {
-        accountData.scopes = credentials.scopes.join(" ")
+        accountData.scopes = credentials.scopes.join(' ')
       }
       await redis.setClaudeAccount(accountId, accountData)
-      logRefreshSuccess(accountId, accountData.name, "claude", {
-        accessToken: credentials.accessToken, expiresAt: accountData.expiresAt,
-        scopes: accountData.scopes, method: "credentials_file"
+      logRefreshSuccess(accountId, accountData.name, 'claude', {
+        accessToken: credentials.accessToken,
+        expiresAt: accountData.expiresAt,
+        scopes: accountData.scopes,
+        method: 'credentials_file'
       })
-      logger.success(`Credentials-based refresh successful for: ${accountData.name} (${accountId}) - Token: ${maskToken(credentials.accessToken)}`)
-      return { success: true, accessToken: credentials.accessToken, expiresAt: accountData.expiresAt }
+      logger.success(
+        `Credentials-based refresh successful for: ${accountData.name} (${accountId}) - Token: ${maskToken(credentials.accessToken)}`
+      )
+      return {
+        success: true,
+        accessToken: credentials.accessToken,
+        expiresAt: accountData.expiresAt
+      }
     } catch (error) {
       const accountData = await redis.getClaudeAccount(accountId)
       if (accountData) {
-        logRefreshError(accountId, accountData.name, "claude", error)
-        if (accountData.disableAutoProtection === true || accountData.disableAutoProtection === "true") {
-          logger.info(`Account ${accountData.name} has auto-protection disabled, skipping error status`)
-          upstreamErrorHelper.recordErrorHistory(accountId, "claude-official", 0, "credentials_refresh_failed", { errorBody: error.message }).catch(() => {})
+        logRefreshError(accountId, accountData.name, 'claude', error)
+        if (
+          accountData.disableAutoProtection === true ||
+          accountData.disableAutoProtection === 'true'
+        ) {
+          logger.info(
+            `Account ${accountData.name} has auto-protection disabled, skipping error status`
+          )
+          upstreamErrorHelper
+            .recordErrorHistory(accountId, 'claude-official', 0, 'credentials_refresh_failed', {
+              errorBody: error.message
+            })
+            .catch(() => {})
         } else {
-          accountData.status = "error"
+          accountData.status = 'error'
           accountData.errorMessage = `Credentials refresh failed: ${error.message}`
           await redis.setClaudeAccount(accountId, accountData)
         }
         try {
-          const webhookNotifier = require("../../utils/webhookNotifier")
+          const webhookNotifier = require('../../utils/webhookNotifier')
           await webhookNotifier.sendAccountAnomalyNotification({
-            accountId, accountName: accountData.name, platform: "claude-credentials",
-            status: "error", errorCode: "CLAUDE_CREDENTIALS_REFRESH_ERROR",
+            accountId,
+            accountName: accountData.name,
+            platform: 'claude-credentials',
+            status: 'error',
+            errorCode: 'CLAUDE_CREDENTIALS_REFRESH_ERROR',
             reason: `Credentials refresh failed: ${error.message}`
           })
-        } catch (webhookError) { logger.error("Failed to send webhook:", webhookError) }
+        } catch (webhookError) {
+          logger.error('Failed to send webhook:', webhookError)
+        }
       }
       logger.error(`Failed credentials refresh for account ${accountId}:`, error)
       throw error
     } finally {
-      if (lockAcquired) { await tokenRefreshService.releaseRefreshLock(accountId, "claude") }
+      if (lockAcquired) {
+        await tokenRefreshService.releaseRefreshLock(accountId, 'claude')
+      }
     }
   }
-
 
   // 🏢 创建Claude账户
   async createAccount(options = {}) {
@@ -648,22 +718,28 @@ class ClaudeAccountService {
 
       if (isExpired) {
         logger.info(`🔄 Token expired/expiring for account ${accountId}, attempting refresh...`)
-        
+
         const refreshToken = this._decryptSensitiveData(accountData.refreshToken)
-        
+
         if (refreshToken) {
           // 有 Refresh Token，使用传统 OAuth 刷新
           try {
             const refreshResult = await this.refreshAccountToken(accountId)
             return refreshResult.accessToken
           } catch (refreshError) {
-            logger.warn(`⚠️ OAuth token refresh failed for account ${accountId}: ${refreshError.message}`)
+            logger.warn(
+              `⚠️ OAuth token refresh failed for account ${accountId}: ${refreshError.message}`
+            )
             try {
-              logger.info(`🔄 Falling back to credentials-based refresh for account ${accountId}...`)
+              logger.info(
+                `🔄 Falling back to credentials-based refresh for account ${accountId}...`
+              )
               const credentialsResult = await this.refreshTokenViaCredentials(accountId)
               return credentialsResult.accessToken
             } catch (credError) {
-              logger.warn(`⚠️ Credentials refresh also failed for account ${accountId}: ${credError.message}`)
+              logger.warn(
+                `⚠️ Credentials refresh also failed for account ${accountId}: ${credError.message}`
+              )
               const currentToken = this._decryptSensitiveData(accountData.accessToken)
               if (currentToken) {
                 logger.info(`🔄 Using current token for account ${accountId} (all refresh failed)`)
@@ -675,14 +751,20 @@ class ClaudeAccountService {
         } else {
           // 没有 Refresh Token，使用 credentials 文件方式刷新
           try {
-            logger.info(`🔄 No refresh token, using credentials-based refresh for account ${accountId}...`)
+            logger.info(
+              `🔄 No refresh token, using credentials-based refresh for account ${accountId}...`
+            )
             const credentialsResult = await this.refreshTokenViaCredentials(accountId)
             return credentialsResult.accessToken
           } catch (credError) {
-            logger.warn(`⚠️ Credentials refresh failed for account ${accountId}: ${credError.message}`)
+            logger.warn(
+              `⚠️ Credentials refresh failed for account ${accountId}: ${credError.message}`
+            )
             const currentToken = this._decryptSensitiveData(accountData.accessToken)
             if (currentToken) {
-              logger.info(`🔄 Using current token for account ${accountId} (credentials refresh failed)`)
+              logger.info(
+                `🔄 Using current token for account ${accountId} (credentials refresh failed)`
+              )
               return currentToken
             }
             throw credError

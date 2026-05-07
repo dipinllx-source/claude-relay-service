@@ -707,23 +707,38 @@ class ClaudeRelayService {
 
           // 🔄 尝试通过 credentials 文件刷新 token
           let refreshSuccess = false
+          let refreshedAccessToken = null
           try {
-            logger.info(`🔄 Attempting credentials-based token refresh for account ${accountId} due to 401...`)
+            logger.info(
+              `🔄 Attempting credentials-based token refresh for account ${accountId} due to 401...`
+            )
             const refreshResult = await claudeAccountService.refreshTokenViaCredentials(accountId)
             if (refreshResult && refreshResult.success) {
-              logger.success(`✅ Token refreshed successfully via credentials for account ${accountId}`)
-              refreshSuccess = true
+              // 🛡️ 校验 token 是否真的变了，防止 refresh "假成功" 导致无效重试
+              if (refreshResult.accessToken && refreshResult.accessToken !== accessToken) {
+                logger.success(
+                  `✅ Token refreshed successfully via credentials for account ${accountId}`
+                )
+                refreshSuccess = true
+                refreshedAccessToken = refreshResult.accessToken
+              } else {
+                logger.warn(
+                  `⚠️ Refresh returned unchanged accessToken for account ${accountId}, treating as failure`
+                )
+              }
             }
           } catch (refreshError) {
-            logger.warn(`⚠️ Credentials-based refresh failed for account ${accountId}: ${refreshError.message}`)
+            logger.warn(
+              `⚠️ Credentials-based refresh failed for account ${accountId}: ${refreshError.message}`
+            )
           }
 
           // 🔄 如果刷新成功，重试请求
           if (refreshSuccess) {
             logger.info(`🔄 Retrying request after token refresh for account ${accountId}...`)
             try {
-              // 获取新的 access token
-              const newAccessToken = await claudeAccountService.getValidAccessToken(accountId)
+              // 使用 refresh 直接返回的新 token，避免重复调用 getValidAccessToken
+              const newAccessToken = refreshedAccessToken
               // 从 bodyStore 获取请求体
               const retryRequestBody = JSON.parse(this.bodyStore.get(bodyStoreIdNonStream))
               // 重试请求
@@ -733,13 +748,17 @@ class ClaudeRelayService {
                 proxyAgent,
                 clientHeaders,
                 accountId,
-                (req) => { upstreamRequest = req },
+                (req) => {
+                  upstreamRequest = req
+                },
                 { ...requestOptions, isRealClaudeCodeRequest }
               )
               response.accountId = accountId
               response.accountType = accountType
-              logger.success(`✅ Request retry successful after token refresh for account ${accountId}, status: ${response.statusCode}`)
-              
+              logger.success(
+                `✅ Request retry successful after token refresh for account ${accountId}, status: ${response.statusCode}`
+              )
+
               // 如果重试成功（200/201），跳过错误处理
               if (response.statusCode === 200 || response.statusCode === 201) {
                 // 移除监听器
@@ -750,7 +769,9 @@ class ClaudeRelayService {
                 return response
               }
             } catch (retryError) {
-              logger.error(`❌ Request retry failed after token refresh for account ${accountId}: ${retryError.message}`)
+              logger.error(
+                `❌ Request retry failed after token refresh for account ${accountId}: ${retryError.message}`
+              )
             }
           }
 
@@ -2336,6 +2357,8 @@ class ClaudeRelayService {
                   logger.error(`❌ Failed to parse body for 529 retry: ${parseError.message}`)
                   throw new Error(`529 retry body parse failed: ${parseError.message}`)
                 }
+                // 🧹 移除当前层的 close 监听，递归层会注册自己的，避免堆积
+                responseStream.removeListener('close', onResponseStreamClose)
                 const retryResult = await this._makeClaudeStreamRequestWithUsageCapture(
                   retryBody,
                   accessToken,
@@ -2365,36 +2388,71 @@ class ClaudeRelayService {
             if (res.statusCode === 401) {
               logger.warn(`🔐 [Stream] Unauthorized error (401) detected for account ${accountId}`)
 
+              // 🛡️ 401 重试上限守卫（与 403 路径共用 maxRetries），防止无限递归
+              const canRetryOn401 = retryCount < maxRetries
+              if (!canRetryOn401) {
+                logger.error(
+                  `🚫 [Stream] 401 retries exhausted (${retryCount}/${maxRetries}) for account ${accountId}, giving up refresh`
+                )
+              }
+
               // 🔄 尝试通过 credentials 文件刷新 token
               let refreshSuccess = false
-              try {
-                logger.info(`🔄 [Stream] Attempting credentials-based token refresh for account ${accountId} due to 401...`)
-                const refreshResult = await claudeAccountService.refreshTokenViaCredentials(accountId)
-                if (refreshResult && refreshResult.success) {
-                  logger.success(`✅ [Stream] Token refreshed successfully via credentials for account ${accountId}`)
-                  refreshSuccess = true
+              let refreshedAccessToken = null
+              if (canRetryOn401) {
+                try {
+                  logger.info(
+                    `🔄 [Stream] Attempting credentials-based token refresh for account ${accountId} due to 401...`
+                  )
+                  const refreshResult =
+                    await claudeAccountService.refreshTokenViaCredentials(accountId)
+                  if (refreshResult && refreshResult.success) {
+                    // 🛡️ 校验 token 是否真的变了（防止 refresh "假成功" 导致循环）
+                    if (refreshResult.accessToken && refreshResult.accessToken !== accessToken) {
+                      logger.success(
+                        `✅ [Stream] Token refreshed successfully via credentials for account ${accountId}`
+                      )
+                      refreshSuccess = true
+                      refreshedAccessToken = refreshResult.accessToken
+                    } else {
+                      logger.warn(
+                        `⚠️ [Stream] Refresh returned unchanged accessToken for account ${accountId}, treating as failure`
+                      )
+                    }
+                  }
+                } catch (refreshError) {
+                  logger.warn(
+                    `⚠️ [Stream] Credentials-based refresh failed for account ${accountId}: ${refreshError.message}`
+                  )
                 }
-              } catch (refreshError) {
-                logger.warn(`⚠️ [Stream] Credentials-based refresh failed for account ${accountId}: ${refreshError.message}`)
               }
 
               // 🔄 如果刷新成功，重试请求
               if (refreshSuccess) {
-                logger.info(`🔄 [Stream] Retrying request after token refresh for account ${accountId}...`)
+                logger.info(
+                  `🔄 [Stream] Retrying request after token refresh for account ${accountId}...`
+                )
                 try {
-                  // 获取新的 access token
-                  const newAccessToken = await claudeAccountService.getValidAccessToken(accountId)
+                  // 使用 refresh 直接返回的新 token，避免再次调用 getValidAccessToken 触发重复刷新
+                  const newAccessToken = refreshedAccessToken
                   // 从 bodyStore 获取请求体
-                  if (!requestOptions.bodyStoreId || !this.bodyStore.has(requestOptions.bodyStoreId)) {
+                  if (
+                    !requestOptions.bodyStoreId ||
+                    !this.bodyStore.has(requestOptions.bodyStoreId)
+                  ) {
                     throw new Error('401 retry requires valid bodyStoreId')
                   }
                   let retryBody
                   try {
                     retryBody = JSON.parse(this.bodyStore.get(requestOptions.bodyStoreId))
                   } catch (parseError) {
-                    logger.error(`❌ [Stream] Failed to parse body for 401 retry: ${parseError.message}`)
+                    logger.error(
+                      `❌ [Stream] Failed to parse body for 401 retry: ${parseError.message}`
+                    )
                     throw new Error(`401 retry body parse failed: ${parseError.message}`)
                   }
+                  // 🧹 移除当前层的 close 监听，递归层会注册自己的，避免堆积
+                  responseStream.removeListener('close', onResponseStreamClose)
                   // 递归调用重试
                   const retryResult = await this._makeClaudeStreamRequestWithUsageCapture(
                     retryBody,
@@ -2415,7 +2473,9 @@ class ClaudeRelayService {
                   resolve(retryResult)
                   return // 重要：提前返回，不执行后续错误处理
                 } catch (retryError) {
-                  logger.error(`❌ [Stream] Request retry failed after token refresh for account ${accountId}: ${retryError.message}`)
+                  logger.error(
+                    `❌ [Stream] Request retry failed after token refresh for account ${accountId}: ${retryError.message}`
+                  )
                 }
               }
 
@@ -2531,6 +2591,8 @@ class ClaudeRelayService {
                 return
               }
               try {
+                // 🧹 移除当前层的 close 监听，递归层会注册自己的，避免堆积
+                responseStream.removeListener('close', onResponseStreamClose)
                 const retryResult = await this._makeClaudeStreamRequestWithUsageCapture(
                   retryBody,
                   accessToken,
@@ -3089,13 +3151,14 @@ class ClaudeRelayService {
         reject(new Error('Request timeout'))
       })
 
-      // 处理客户端断开连接
-      responseStream.on('close', () => {
+      // 处理客户端断开连接（命名 handler，递归重试前需移除以避免监听器堆积）
+      const onResponseStreamClose = () => {
         logger.debug('🔌 Client disconnected, cleaning up stream')
         if (!req.destroyed) {
           req.destroy(new Error('Client disconnected'))
         }
-      })
+      }
+      responseStream.on('close', onResponseStreamClose)
 
       // 写入请求体
       req.write(bodyString)

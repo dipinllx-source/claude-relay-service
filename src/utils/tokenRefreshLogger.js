@@ -123,6 +123,16 @@ function logRefreshSkipped(accountId, accountName, platform = 'claude', reason =
  * 记录 token 使用情况
  */
 function logTokenUsage(accountId, accountName, platform = 'claude', expiresAt, isExpired) {
+  // expiresAt 可能是数字字符串（"1778147659391"）、数字或 ISO 字符串。
+  // 数字字符串走 Number() 路径才能得到 epoch ms；ISO 字符串走 Date.parse() 路径。
+  let remainingMinutes = 'N/A'
+  if (expiresAt) {
+    const numeric = Number(expiresAt)
+    const epochMs = Number.isFinite(numeric) ? numeric : Date.parse(expiresAt)
+    if (Number.isFinite(epochMs)) {
+      remainingMinutes = Math.floor((epochMs - Date.now()) / 60000)
+    }
+  }
   tokenRefreshLogger.debug({
     event: 'token_usage_check',
     accountId,
@@ -130,7 +140,7 @@ function logTokenUsage(accountId, accountName, platform = 'claude', expiresAt, i
     platform,
     expiresAt,
     isExpired,
-    remainingMinutes: expiresAt ? Math.floor((new Date(expiresAt) - Date.now()) / 60000) : 'N/A',
+    remainingMinutes,
     timestamp: new Date().toISOString()
   })
 }
