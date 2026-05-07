@@ -9,7 +9,7 @@
         class="mb-3 flex items-center text-lg font-semibold text-gray-800 dark:text-gray-300 sm:mb-4 sm:text-xl"
       >
         <span
-          class="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
+          class="tutorial-step-marker mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
           >2</span
         >
         配置 Codex
@@ -31,9 +31,7 @@
             <code class="rounded bg-yellow-100 px-1 dark:bg-yellow-900">{{ configPath }}</code>
             文件开头添加以下配置：
           </p>
-          <div
-            class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-          >
+          <div class="tutorial-code-box">
             <div
               v-for="line in configTomlLines"
               :key="line"
@@ -44,9 +42,7 @@
             </div>
           </div>
           <p class="mt-3 text-sm text-yellow-600 dark:text-yellow-400">一键写入命令：</p>
-          <div
-            class="mt-2 overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-          >
+          <div class="tutorial-command-box mt-2">
             <div class="whitespace-nowrap text-gray-300">{{ configTomlWriteCmd }}</div>
           </div>
         </div>
@@ -63,9 +59,7 @@
             <code class="rounded bg-orange-100 px-1 dark:bg-orange-900">{{ authPath }}</code>
             文件中配置：
           </p>
-          <div
-            class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-          >
+          <div class="tutorial-code-box">
             <div class="whitespace-nowrap text-gray-300">{</div>
             <div class="whitespace-nowrap text-gray-300">
               &nbsp;&nbsp;"OPENAI_API_KEY": "后台创建的API密钥"
@@ -76,9 +70,7 @@
             class="mt-3 rounded border border-red-200 bg-red-50 p-2 dark:border-red-500/40 dark:bg-red-950/30"
           ></div>
           <p class="mt-3 text-sm text-orange-600 dark:text-orange-400">一键写入命令：</p>
-          <div
-            class="mt-2 overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-          >
+          <div class="tutorial-command-box mt-2">
             <div class="whitespace-nowrap text-gray-300">{{ authJsonWriteCmd }}</div>
           </div>
         </div>

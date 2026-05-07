@@ -214,7 +214,12 @@
             <span>{{ currentSystemName }}</span>
           </div>
         </div>
-        <div :key="activeCliTool + '-' + activeTutorialSystem" class="demo__body">
+        <div
+          :key="activeCliTool + '-' + activeTutorialSystem"
+          ref="demoBodyRef"
+          class="demo__body"
+          :class="`tutorial-platform--${activeTutorialSystem}`"
+        >
           <component :is="currentTutorialComponent" :platform="activeTutorialSystem" />
         </div>
       </div>
@@ -231,18 +236,20 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ClaudeCodeTutorial from '@/components/tutorial/ClaudeCodeTutorial.vue'
 import GeminiCliTutorial from '@/components/tutorial/GeminiCliTutorial.vue'
 import CodexTutorial from '@/components/tutorial/CodexTutorial.vue'
 import DroidCliTutorial from '@/components/tutorial/DroidCliTutorial.vue'
+import { enhanceTutorialCommandBoxes } from '@/utils/tutorialCommandCopy'
 
 const route = useRoute()
 const router = useRouter()
 
 const scrolled = ref(false)
 const activeDropdown = ref(null)
+const demoBodyRef = ref(null)
 const openDropdown = (name) => {
   activeDropdown.value = name
 }
@@ -297,7 +304,14 @@ const selectTool = (key) => {
   }
 }
 
+const refreshCommandCopyButtons = () => {
+  nextTick(() => {
+    enhanceTutorialCommandBoxes(demoBodyRef.value)
+  })
+}
+
 watch(() => route.query.tool, applyToolFromQuery)
+watch([activeCliTool, activeTutorialSystem], refreshCommandCopyButtons)
 
 let onScroll
 onMounted(() => {
@@ -307,6 +321,7 @@ onMounted(() => {
   }
   window.addEventListener('scroll', onScroll, { passive: true })
   onScroll()
+  refreshCommandCopyButtons()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll)

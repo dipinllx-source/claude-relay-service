@@ -53,22 +53,26 @@
     </div>
 
     <!-- 动态组件 -->
-    <component :is="currentTutorialComponent" :platform="activeTutorialSystem" />
+    <div ref="tutorialBodyRef" :class="`tutorial-platform--${activeTutorialSystem}`">
+      <component :is="currentTutorialComponent" :platform="activeTutorialSystem" />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, onMounted, watch } from 'vue'
 import ClaudeCodeTutorial from '@/components/tutorial/ClaudeCodeTutorial.vue'
 import GeminiCliTutorial from '@/components/tutorial/GeminiCliTutorial.vue'
 import CodexTutorial from '@/components/tutorial/CodexTutorial.vue'
 import DroidCliTutorial from '@/components/tutorial/DroidCliTutorial.vue'
+import { enhanceTutorialCommandBoxes } from '@/utils/tutorialCommandCopy'
 
 // 当前系统选择
 const activeTutorialSystem = ref('windows')
 
 // 当前 CLI 工具选择
 const activeCliTool = ref('claude-code')
+const tutorialBodyRef = ref(null)
 
 // 系统列表
 const tutorialSystems = [
@@ -96,6 +100,15 @@ const currentTutorialComponent = computed(() => {
   const tool = cliTools.find((t) => t.key === activeCliTool.value)
   return tool ? tool.component : null
 })
+
+const refreshCommandCopyButtons = () => {
+  nextTick(() => {
+    enhanceTutorialCommandBoxes(tutorialBodyRef.value)
+  })
+}
+
+watch([activeCliTool, activeTutorialSystem], refreshCommandCopyButtons)
+onMounted(refreshCommandCopyButtons)
 </script>
 
 <style scoped>

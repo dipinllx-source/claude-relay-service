@@ -9,7 +9,7 @@
         class="mb-3 flex items-center text-lg font-semibold text-gray-800 dark:text-gray-300 sm:mb-4 sm:text-xl"
       >
         <span
-          class="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
+          class="tutorial-step-marker mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
           >2</span
         >
         配置 Droid CLI
@@ -39,9 +39,7 @@
         <p class="mb-3 text-sm text-blue-700 dark:text-blue-200">
           将以下内容追加到配置文件中，并替换示例中的域名和 API 密钥：
         </p>
-        <div
-          class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-        >
+        <div class="tutorial-code-box">
           <div
             v-for="(line, index) in droidCliConfigLines"
             :key="line + index"

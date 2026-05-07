@@ -4,7 +4,7 @@
       class="mb-3 flex items-center text-lg font-semibold text-gray-800 dark:text-gray-300 sm:mb-4 sm:text-xl"
     >
       <span
-        class="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
+        class="tutorial-step-marker mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
         >{{ stepNumber }}</span
       >
       安装 Node.js 环境
@@ -57,9 +57,7 @@
           <p class="mb-2 text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
             如果你安装了 Chocolatey 或 Scoop，可以使用命令行安装：
           </p>
-          <div
-            class="overflow-x-auto rounded-lg bg-gray-900 p-3 font-mono text-xs text-green-400 dark:border dark:border-gray-700 dark:bg-gray-900 sm:p-4 sm:text-sm"
-          >
+          <div class="tutorial-command-box">
             <div class="mb-2"># 使用 Chocolatey</div>
             <div class="whitespace-nowrap text-gray-300">choco install nodejs</div>
             <div class="mb-2 mt-3"># 或使用 Scoop</div>
@@ -98,9 +96,7 @@
           <p class="mb-2 text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
             如果你已经安装了 Homebrew，使用它安装 Node.js 会更方便：
           </p>
-          <div
-            class="overflow-x-auto rounded-lg bg-gray-900 p-3 font-mono text-xs text-green-400 dark:border dark:border-gray-700 dark:bg-gray-900 sm:p-4 sm:text-sm"
-          >
+          <div class="tutorial-command-box">
             <div class="mb-2"># 更新 Homebrew</div>
             <div class="whitespace-nowrap text-gray-300">brew update</div>
             <div class="mb-2 mt-3"># 安装 Node.js</div>
@@ -166,9 +162,7 @@
           <p class="mb-2 text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
             nvm 可以方便地管理多个 Node.js 版本：
           </p>
-          <div
-            class="overflow-x-auto rounded-lg bg-gray-900 p-3 font-mono text-xs text-green-400 dark:border dark:border-gray-700 dark:bg-gray-900 sm:p-4 sm:text-sm"
-          >
+          <div class="tutorial-command-box">
             <div class="mb-2"># 安装 nvm</div>
             <div class="whitespace-nowrap text-gray-300">
               curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
@@ -181,9 +175,7 @@
         </div>
         <div class="mb-4">
           <p class="mb-3 text-gray-700 dark:text-gray-300">方法二：使用包管理器</p>
-          <div
-            class="overflow-x-auto rounded-lg bg-gray-900 p-3 font-mono text-xs text-green-400 dark:border dark:border-gray-700 dark:bg-gray-900 sm:p-4 sm:text-sm"
-          >
+          <div class="tutorial-command-box">
             <div class="mb-2"># Ubuntu/Debian</div>
             <div class="whitespace-nowrap text-gray-300">
               curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -

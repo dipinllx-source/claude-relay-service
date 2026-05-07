@@ -8,9 +8,7 @@
     <p class="mb-2 text-xs text-green-700 dark:text-green-300 sm:mb-3 sm:text-sm">
       安装完成后，打开 {{ terminal }}，输入以下命令：
     </p>
-    <div
-      class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-    >
+    <div class="tutorial-command-box">
       <div class="whitespace-nowrap text-gray-300">node --version</div>
       <div class="whitespace-nowrap text-gray-300">npm --version</div>
     </div>

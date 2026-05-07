@@ -9,7 +9,7 @@
         class="mb-3 flex items-center text-lg font-semibold text-gray-800 dark:text-gray-300 sm:mb-4 sm:text-xl"
       >
         <span
-          class="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
+          class="tutorial-step-marker mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white sm:mr-3 sm:h-8 sm:w-8 sm:text-sm"
           >2</span
         >
         配置 Gemini CLI 环境变量
@@ -30,9 +30,7 @@
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">
               在 PowerShell 中运行以下命令：
             </p>
-            <div
-              class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-            >
+            <div class="tutorial-command-box">
               <div class="whitespace-nowrap text-gray-300">
                 $env:GOOGLE_GEMINI_BASE_URL = "{{ geminiBaseUrl }}"
               </div>
@@ -55,9 +53,7 @@
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">
               在 PowerShell 中运行以下命令：
             </p>
-            <div
-              class="mb-3 overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-            >
+            <div class="tutorial-command-box mb-3">
               <div class="mb-2"># 设置用户级环境变量（永久生效）</div>
               <div class="whitespace-nowrap text-gray-300">
                 [System.Environment]::SetEnvironmentVariable("GOOGLE_GEMINI_BASE_URL", "{{
@@ -88,9 +84,7 @@
               临时设置（当前会话）
             </h6>
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">在终端中运行以下命令：</p>
-            <div
-              class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-            >
+            <div class="tutorial-command-box">
               <div class="whitespace-nowrap text-gray-300">
                 export GOOGLE_GEMINI_BASE_URL="{{ geminiBaseUrl }}"
               </div>
@@ -115,9 +109,7 @@
                 platform === 'macos' ? '~/.zshrc' : '~/.bashrc'
               }}）：
             </p>
-            <div
-              class="mb-3 overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-            >
+            <div class="tutorial-command-box mb-3">
               <div class="whitespace-nowrap text-gray-300">
                 export GOOGLE_GEMINI_BASE_URL="{{ geminiBaseUrl }}"
               </div>
@@ -127,9 +119,7 @@
               </div>
             </div>
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">然后执行：</p>
-            <div
-              class="overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-            >
+            <div class="tutorial-command-box">
               <div class="whitespace-nowrap text-gray-300">
                 source {{ platform === 'macos' ? '~/.zshrc' : '~/.bashrc' }}
               </div>
@@ -147,9 +137,7 @@
           <p class="mb-3 text-sm text-green-700 dark:text-green-300">
             {{ platform === 'windows' ? '在 PowerShell 中验证：' : '在终端中验证：' }}
           </p>
-          <div
-            class="space-y-1 overflow-x-auto rounded bg-gray-900 p-2 font-mono text-xs text-green-400 sm:p-3 sm:text-sm"
-          >
+          <div class="tutorial-command-box space-y-1">
             <template v-if="platform === 'windows'">
               <div class="whitespace-nowrap text-gray-300">echo $env:GOOGLE_GEMINI_BASE_URL</div>
               <div class="whitespace-nowrap text-gray-300">echo $env:GEMINI_API_KEY</div>
