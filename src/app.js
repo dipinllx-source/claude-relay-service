@@ -142,6 +142,13 @@ class Application {
       const claudeAccountService = require('./services/account/claudeAccountService')
       await claudeAccountService.initializeSessionWindows()
 
+      // 🔁 迁移：为旧 Claude 账号填充 axios 双开关默认值（idempotent）
+      try {
+        await claudeAccountService.migrateAxiosOptInDefaults()
+      } catch (err) {
+        logger.warn('axios opt-in defaults migration failed (startup continues):', err.message)
+      }
+
       // 📊 初始化费用排序索引服务
       logger.info('📊 Initializing cost rank service...')
       const costRankService = require('./services/costRankService')

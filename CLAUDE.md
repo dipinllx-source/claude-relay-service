@@ -192,7 +192,9 @@ cd web/admin-spa && npm run dev # 前端开发模式（Vite HMR）
 | Redis 连接失败 | 检查 REDIS_HOST/PORT/PASSWORD |
 | 管理员登录失败 | 检查 data/init.json，运行 `npm run setup` |
 | API Key 格式错误 | 确保使用 `cr_` 前缀格式（可通过 API_KEY_PREFIX 配置） |
-| Token 刷新失败 | 检查 refreshToken 有效性和代理配置，查看 `logs/token-refresh-error.log` |
+| Token 刷新失败 | 流程：CLI 优先 3 次（每次 `claude -p hello world`，mtime 校验代替 sleep）→ 当账号 `axiosRefreshEnabled` 与 `axiosCloudflareConfirmed` 双开关同时为 `'true'` 时才进入 axios `refresh_token` grant 兜底（默认关）。失败按类别处置：`invalid_grant`/`file_path_error`/`cli_no_op`→`status=error` + 对应 webhook，`oauth_network`/`cli_subprocess`→`temp_unavailable` 短冷却，`cloudflare_blocked`→自动关闭 axios 双开关 + 记录 `axiosLastBlockedAt`/`axiosBlockedReason`，发 `CLAUDE_REFRESH_CLOUDFLARE_BLOCKED` webhook。失败时**不**污染 token 字段缓存。查看 `logs/token-refresh-error.log` 与 `token-refresh.log`（含 `trigger`：`cache_expired`/`upstream_error`/`manual_refresh`，及 `category` 字段） |
+| Cloudflare 拦截 axios 兜底 | 部署出口被 CF WAF 屏蔽时返回 403 + `cf-ray` 头：系统识别为 `cloudflare_blocked`，自动关闭账号 axios 开关。重新启用前请用 `curl -X POST https://console.anthropic.com/v1/oauth/token ... -i` 验证不再被拦截，然后在管理后台 → Claude 账号编辑 → "直连 OAuth 兜底（高级）" 重新勾选确认 + 启用 |
+| CLI 永久 no-op | 账号每次刷新都走到 `cli_no_op` 分类（webhook `CLAUDE_REFRESH_CLI_NO_OP`）：通常是 `~/.claude/.credentials.json` 中的 refresh_token 已被 OAuth 服务拒绝，需在主机上重新执行 `claude login` 同步文件状态；axios 兜底不应作为长期解药（refresh_token 漂移会让 CLI 路径退化） |
 | 调度器选账户失败 | 检查账户 status:'active'，确认类型与路由匹配，查看粘性会话绑定 |
 | 并发计数泄漏 | 系统每分钟自动清理，重启也会清理 |
 | 粘性会话失效 | 检查 Redis 中 session 数据，Nginx 代理需添加 `underscores_in_headers on` |

@@ -50,14 +50,21 @@ if (process.env.NODE_ENV !== 'production') {
 
 /**
  * 记录 token 刷新开始
+ *
+ * @param {string} trigger - 刷新触发来源，合法值：
+ *   - 'cache_expired'   缓存中 expiresAt 判断为过期
+ *   - 'upstream_error'  上游 401 等 token 异常被捕获后触发
+ *   - 'manual_refresh'  管理员手动触发或默认入口
+ *   非法值会按字面量记录，不做强校验。
  */
-function logRefreshStart(accountId, accountName, platform = 'claude', reason = '') {
+function logRefreshStart(accountId, accountName, platform = 'claude', reason = '', trigger = '') {
   tokenRefreshLogger.info({
     event: 'token_refresh_start',
     accountId,
     accountName,
     platform,
     reason,
+    trigger,
     timestamp: new Date().toISOString()
   })
 }
@@ -85,8 +92,20 @@ function logRefreshSuccess(accountId, accountName, platform = 'claude', tokenDat
 
 /**
  * 记录 token 刷新失败
+ *
+ * @param {string} category - 失败分类，便于按类别检索：
+ *   'invalid_grant' / 'oauth_network' / 'cloudflare_blocked' /
+ *   'cli_subprocess' / 'cli_no_op' / 'file_path_error'
+ *   非法或缺失值会按字面量记录，不做强校验。
  */
-function logRefreshError(accountId, accountName, platform = 'claude', error, attemptNumber = 1) {
+function logRefreshError(
+  accountId,
+  accountName,
+  platform = 'claude',
+  error,
+  attemptNumber = 1,
+  category = ''
+) {
   const errorInfo = {
     message: error.message || error.toString(),
     code: error.code || 'UNKNOWN',
@@ -101,6 +120,7 @@ function logRefreshError(accountId, accountName, platform = 'claude', error, att
     platform,
     error: errorInfo,
     attemptNumber,
+    category,
     timestamp: new Date().toISOString()
   })
 }
@@ -108,13 +128,20 @@ function logRefreshError(accountId, accountName, platform = 'claude', error, att
 /**
  * 记录 token 刷新跳过（由于并发锁）
  */
-function logRefreshSkipped(accountId, accountName, platform = 'claude', reason = 'locked') {
+function logRefreshSkipped(
+  accountId,
+  accountName,
+  platform = 'claude',
+  reason = 'locked',
+  trigger = ''
+) {
   tokenRefreshLogger.info({
     event: 'token_refresh_skipped',
     accountId,
     accountName,
     platform,
     reason,
+    trigger,
     timestamp: new Date().toISOString()
   })
 }

@@ -797,6 +797,9 @@ router.put('/claude-accounts/:accountId', authenticateAdmin, async (req, res) =>
     return res.json({ success: true, message: 'Claude account updated successfully' })
   } catch (error) {
     logger.error('❌ Failed to update Claude account:', error)
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message })
+    }
     return res
       .status(500)
       .json({ error: 'Failed to update Claude account', message: error.message })

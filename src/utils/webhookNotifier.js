@@ -90,6 +90,12 @@ class WebhookNotifier {
         error: 'CLAUDE_OAUTH_ERROR',
         disabled: 'CLAUDE_OAUTH_MANUALLY_DISABLED'
       },
+      'claude-credentials': {
+        invalid_grant: 'CLAUDE_REFRESH_INVALID_GRANT',
+        file_path_error: 'CLAUDE_REFRESH_FILE_PATH_ERROR',
+        cli_no_op: 'CLAUDE_REFRESH_CLI_NO_OP',
+        cloudflare_blocked: 'CLAUDE_REFRESH_CLOUDFLARE_BLOCKED'
+      },
       'claude-console': {
         blocked: 'CLAUDE_CONSOLE_BLOCKED',
         error: 'CLAUDE_CONSOLE_ERROR',

@@ -1981,6 +1981,123 @@
               </label>
             </div>
 
+            <!-- Token 刷新策略（仅 Claude OAuth 账户，创建模式）-->
+            <div v-if="form.platform === 'claude'" class="mt-4">
+              <label class="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Token 刷新策略
+              </label>
+
+              <!-- CLI 路径：始终启用，不可关 -->
+              <div
+                class="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
+              >
+                <div class="flex items-start">
+                  <i class="fas fa-check-circle mt-0.5 text-green-600 dark:text-green-400"></i>
+                  <div class="ml-2">
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      通过本地 Claude CLI 刷新（始终启用）
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      过期时调用 <code>claude -p</code> 触发本地 CLI 从 .credentials.json 完成 OAuth
+                      刷新
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 直连 OAuth 兜底（高级，可折叠）-->
+              <div
+                class="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-900/10"
+              >
+                <button
+                  class="flex w-full items-center justify-between p-3 text-left"
+                  type="button"
+                  @click="axiosFallbackPanelOpen = !axiosFallbackPanelOpen"
+                >
+                  <span
+                    class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    <i class="fas fa-exclamation-triangle mr-2 text-amber-500"></i>
+                    直连 OAuth 兜底（高级）
+                  </span>
+                  <i
+                    class="fas text-xs text-gray-500 dark:text-gray-400"
+                    :class="axiosFallbackPanelOpen ? 'fa-chevron-up' : 'fa-chevron-down'"
+                  ></i>
+                </button>
+
+                <div
+                  v-if="axiosFallbackPanelOpen"
+                  class="border-t border-amber-200 p-3 dark:border-amber-700/40"
+                >
+                  <!-- 风险提示 -->
+                  <div class="mb-3 text-xs text-gray-600 dark:text-gray-400">
+                    <p class="mb-1 font-medium text-gray-700 dark:text-gray-300">风险提示：</p>
+                    <ul class="list-disc space-y-1 pl-4">
+                      <li>
+                        Anthropic OAuth 端点经 Cloudflare WAF 防护，部分数据中心 IP / 被滥用过的 IP
+                        段会被拦截，返回 403
+                      </li>
+                      <li>拦截发生时账号会被错误标记为凭据失效（已识别并独立处置）</li>
+                      <li>
+                        即便开启成功，会导致 .credentials.json 中的 refresh_token 与 Redis 漂移，CLI
+                        路径可能逐步退化
+                      </li>
+                      <li>
+                        建议优先排查 CLI 失败原因（重新登录 / 同步文件态），而非长期依赖 axios 兜底
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- 验证方法 -->
+                  <div
+                    class="mb-3 rounded border border-gray-200 bg-white p-2 text-xs dark:border-gray-700 dark:bg-gray-900/40"
+                  >
+                    <p class="mb-1 font-medium text-gray-700 dark:text-gray-300">
+                      如何验证不被 Cloudflare 拦截：
+                    </p>
+                    <pre
+                      class="overflow-x-auto whitespace-pre-wrap text-[11px] text-gray-600 dark:text-gray-400"
+                    ><code>curl -X POST https://console.anthropic.com/v1/oauth/token \
+  -H 'Content-Type: application/json' \
+  -d '{"grant_type":"refresh_token","refresh_token":"...","client_id":"..."}' -i</code></pre>
+                    <p class="mt-1 text-gray-500 dark:text-gray-400">
+                      返回非 403 且无 cf-ray / cf-mitigated 头表示出口未被拦截
+                    </p>
+                  </div>
+
+                  <!-- 确认勾选 -->
+                  <label class="mb-3 flex items-start">
+                    <input
+                      v-model="form.axiosCloudflareConfirmed"
+                      class="mt-1 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                      type="checkbox"
+                      @change="handleAxiosConfirmedChange"
+                    />
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      我已确认部署出口 IP 未被 Cloudflare 拦截
+                    </span>
+                  </label>
+
+                  <!-- 启用开关 -->
+                  <label
+                    class="flex items-start"
+                    :class="{ 'opacity-50': !form.axiosCloudflareConfirmed }"
+                  >
+                    <input
+                      v-model="form.axiosRefreshEnabled"
+                      class="mt-1 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                      :disabled="!form.axiosCloudflareConfirmed"
+                      type="checkbox"
+                    />
+                    <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      启用 axios 兜底（CLI 三次失败后调用直连 OAuth）
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <!-- 所有平台的优先级设置 -->
             <div>
               <label class="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300"
@@ -3389,6 +3506,140 @@
             v-model:temp-unavailable-5xx-ttl-seconds="form.tempUnavailable5xxTtlSeconds"
           />
 
+          <!-- Token 刷新策略（编辑模式，仅 Claude OAuth 账户）-->
+          <div v-if="form.platform === 'claude'">
+            <label class="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Token 刷新策略
+            </label>
+
+            <!-- CLI 路径：始终启用，不可关 -->
+            <div
+              class="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
+            >
+              <div class="flex items-start">
+                <i class="fas fa-check-circle mt-0.5 text-green-600 dark:text-green-400"></i>
+                <div class="ml-2">
+                  <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    通过本地 Claude CLI 刷新（始终启用）
+                  </p>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    过期时调用 <code>claude -p</code> 触发本地 CLI 从 .credentials.json 完成 OAuth
+                    刷新
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 直连 OAuth 兜底（高级，可折叠）-->
+            <div
+              class="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700/40 dark:bg-amber-900/10"
+            >
+              <button
+                class="flex w-full items-center justify-between p-3 text-left"
+                type="button"
+                @click="axiosFallbackPanelOpen = !axiosFallbackPanelOpen"
+              >
+                <span
+                  class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  <i class="fas fa-exclamation-triangle mr-2 text-amber-500"></i>
+                  直连 OAuth 兜底（高级）
+                </span>
+                <i
+                  class="fas text-xs text-gray-500 dark:text-gray-400"
+                  :class="axiosFallbackPanelOpen ? 'fa-chevron-up' : 'fa-chevron-down'"
+                ></i>
+              </button>
+
+              <div
+                v-if="axiosFallbackPanelOpen"
+                class="border-t border-amber-200 p-3 dark:border-amber-700/40"
+              >
+                <!-- CF 拦截历史警告条 -->
+                <div
+                  v-if="form.axiosLastBlockedAt"
+                  class="mb-3 rounded border border-red-300 bg-red-50 p-2 text-xs text-red-700 dark:border-red-700/40 dark:bg-red-900/20 dark:text-red-300"
+                >
+                  <p class="font-medium">
+                    <i class="fas fa-shield-alt mr-1"></i>
+                    最近一次被 Cloudflare 拦截：{{ formatBlockedAt(form.axiosLastBlockedAt) }}
+                  </p>
+                  <p v-if="form.axiosBlockedReason" class="mt-1">
+                    原因：{{ form.axiosBlockedReason }}
+                  </p>
+                  <p class="mt-1">
+                    系统已自动关闭 axios 兜底。重新启用前请确认部署出口已不再被 Cloudflare 拦截。
+                  </p>
+                </div>
+
+                <!-- 风险提示 -->
+                <div class="mb-3 text-xs text-gray-600 dark:text-gray-400">
+                  <p class="mb-1 font-medium text-gray-700 dark:text-gray-300">风险提示：</p>
+                  <ul class="list-disc space-y-1 pl-4">
+                    <li>
+                      Anthropic OAuth 端点经 Cloudflare WAF 防护，部分数据中心 IP / 被滥用过的 IP
+                      段会被拦截，返回 403
+                    </li>
+                    <li>拦截发生时账号会被错误标记为凭据失效（已识别并独立处置）</li>
+                    <li>
+                      即便开启成功，会导致 .credentials.json 中的 refresh_token 与 Redis 漂移，CLI
+                      路径可能逐步退化
+                    </li>
+                    <li>
+                      建议优先排查 CLI 失败原因（重新登录 / 同步文件态），而非长期依赖 axios 兜底
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- 验证方法 -->
+                <div
+                  class="mb-3 rounded border border-gray-200 bg-white p-2 text-xs dark:border-gray-700 dark:bg-gray-900/40"
+                >
+                  <p class="mb-1 font-medium text-gray-700 dark:text-gray-300">
+                    如何验证不被 Cloudflare 拦截：
+                  </p>
+                  <pre
+                    class="overflow-x-auto whitespace-pre-wrap text-[11px] text-gray-600 dark:text-gray-400"
+                  ><code>curl -X POST https://console.anthropic.com/v1/oauth/token \
+  -H 'Content-Type: application/json' \
+  -d '{"grant_type":"refresh_token","refresh_token":"...","client_id":"..."}' -i</code></pre>
+                  <p class="mt-1 text-gray-500 dark:text-gray-400">
+                    返回非 403 且无 cf-ray / cf-mitigated 头表示出口未被拦截
+                  </p>
+                </div>
+
+                <!-- 确认勾选 -->
+                <label class="mb-3 flex items-start">
+                  <input
+                    v-model="form.axiosCloudflareConfirmed"
+                    class="mt-1 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    type="checkbox"
+                    @change="handleAxiosConfirmedChange"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    我已确认部署出口 IP 未被 Cloudflare 拦截
+                  </span>
+                </label>
+
+                <!-- 启用开关 -->
+                <label
+                  class="flex items-start"
+                  :class="{ 'opacity-50': !form.axiosCloudflareConfirmed }"
+                >
+                  <input
+                    v-model="form.axiosRefreshEnabled"
+                    class="mt-1 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    :disabled="!form.axiosCloudflareConfirmed"
+                    type="checkbox"
+                  />
+                  <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    启用 axios 兜底（CLI 三次失败后调用直连 OAuth）
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <!-- OpenAI-Responses 特定字段（编辑模式）-->
           <div v-if="form.platform === 'openai-responses'" class="space-y-4">
             <div>
@@ -4125,6 +4376,26 @@ const oauthStep = ref(1)
 const loading = ref(false)
 const showApiKey = ref(false)
 
+// axios OAuth 兜底面板折叠态：默认折叠；如有拦截历史则默认展开以提醒
+const axiosFallbackPanelOpen = ref(!!props.account?.axiosLastBlockedAt)
+
+// 取消勾选 Cloudflare 确认 → 强制把启用开关回 off
+const handleAxiosConfirmedChange = () => {
+  if (!form.value.axiosCloudflareConfirmed) {
+    form.value.axiosRefreshEnabled = false
+  }
+}
+
+// 格式化 axiosLastBlockedAt 为本地时间字符串
+const formatBlockedAt = (iso) => {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString()
+  } catch (_) {
+    return iso
+  }
+}
+
 // Setup Token 相关状态
 const setupTokenLoading = ref(false)
 const setupTokenExchanging = ref(false)
@@ -4451,7 +4722,15 @@ const form = ref({
     }
     return ''
   })(),
-  expiresAt: props.account?.expiresAt || null
+  expiresAt: props.account?.expiresAt || null,
+  // axios OAuth fallback 双开关 + 拦截历史
+  axiosRefreshEnabled:
+    props.account?.axiosRefreshEnabled === true || props.account?.axiosRefreshEnabled === 'true',
+  axiosCloudflareConfirmed:
+    props.account?.axiosCloudflareConfirmed === true ||
+    props.account?.axiosCloudflareConfirmed === 'true',
+  axiosLastBlockedAt: props.account?.axiosLastBlockedAt || '',
+  axiosBlockedReason: props.account?.axiosBlockedReason || ''
 })
 
 const buildClaudeTempUnavailablePolicyPayload = () => ({
@@ -5043,6 +5322,8 @@ const buildClaudeAccountData = (tokenInfo, accountName, clientId) => {
     useUnifiedClientId: form.value.useUnifiedClientId || false,
     unifiedClientId: clientId,
     maxConcurrency: form.value.serialQueueEnabled ? 1 : 0,
+    axiosRefreshEnabled: !!form.value.axiosRefreshEnabled && !!form.value.axiosCloudflareConfirmed,
+    axiosCloudflareConfirmed: !!form.value.axiosCloudflareConfirmed,
     subscriptionInfo: {
       accountType: form.value.subscriptionType || 'claude_max',
       hasClaudeMax: form.value.subscriptionType === 'claude_max',
@@ -5526,6 +5807,10 @@ const createAccount = async () => {
       data.useUnifiedClientId = form.value.useUnifiedClientId || false
       data.unifiedClientId = form.value.unifiedClientId || ''
       data.maxConcurrency = form.value.serialQueueEnabled ? 1 : 0
+      // axios 兜底门控（双开关同时为 true 才生效）
+      data.axiosRefreshEnabled =
+        !!form.value.axiosRefreshEnabled && !!form.value.axiosCloudflareConfirmed
+      data.axiosCloudflareConfirmed = !!form.value.axiosCloudflareConfirmed
       // 添加订阅类型信息
       data.subscriptionInfo = {
         accountType: form.value.subscriptionType || 'claude_max',
@@ -5933,6 +6218,14 @@ const updateAccount = async () => {
       data.unifiedClientId = form.value.unifiedClientId || ''
       data.maxConcurrency = form.value.serialQueueEnabled ? 1 : 0
       Object.assign(data, buildClaudeTempUnavailablePolicyPayload())
+      // axios 双开关 invariant：enabled=true 必须 confirmed=true
+      if (form.value.axiosRefreshEnabled && !form.value.axiosCloudflareConfirmed) {
+        showToast('启用 axios 兜底前请勾选 Cloudflare 不拦截确认', 'error')
+        loading.value = false
+        return
+      }
+      data.axiosRefreshEnabled = !!form.value.axiosRefreshEnabled
+      data.axiosCloudflareConfirmed = !!form.value.axiosCloudflareConfirmed
       // 更新订阅类型信息
       data.subscriptionInfo = {
         accountType: form.value.subscriptionType || 'claude_max',
@@ -6613,7 +6906,20 @@ watch(
         ),
         tempUnavailable5xxTtlSeconds: toFormCooldownOverrideValue(
           newAccount.tempUnavailable5xxTtlSeconds
-        )
+        ),
+        // axios 兜底门控（仅 Claude OAuth 账号）
+        axiosRefreshEnabled:
+          newAccount.axiosRefreshEnabled === true || newAccount.axiosRefreshEnabled === 'true',
+        axiosCloudflareConfirmed:
+          newAccount.axiosCloudflareConfirmed === true ||
+          newAccount.axiosCloudflareConfirmed === 'true',
+        axiosLastBlockedAt: newAccount.axiosLastBlockedAt || '',
+        axiosBlockedReason: newAccount.axiosBlockedReason || ''
+      }
+
+      // 如果该账号有 CF 拦截历史，自动展开折叠面板让用户看到警告
+      if (newAccount.axiosLastBlockedAt) {
+        axiosFallbackPanelOpen.value = true
       }
 
       // 如果是Claude Console账户，加载实时使用情况

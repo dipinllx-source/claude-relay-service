@@ -712,20 +712,16 @@ class ClaudeRelayService {
             logger.info(
               `🔄 Attempting credentials-based token refresh for account ${accountId} due to 401...`
             )
-            const refreshResult = await claudeAccountService.refreshTokenViaCredentials(accountId)
-            if (refreshResult && refreshResult.success) {
-              // 🛡️ 校验 token 是否真的变了，防止 refresh "假成功" 导致无效重试
-              if (refreshResult.accessToken && refreshResult.accessToken !== accessToken) {
-                logger.success(
-                  `✅ Token refreshed successfully via credentials for account ${accountId}`
-                )
-                refreshSuccess = true
-                refreshedAccessToken = refreshResult.accessToken
-              } else {
-                logger.warn(
-                  `⚠️ Refresh returned unchanged accessToken for account ${accountId}, treating as failure`
-                )
-              }
+            const refreshResult = await claudeAccountService.refreshTokenViaCredentials(
+              accountId,
+              'upstream_error'
+            )
+            if (refreshResult && refreshResult.success && refreshResult.accessToken) {
+              logger.success(
+                `✅ Token refreshed successfully via credentials for account ${accountId}`
+              )
+              refreshSuccess = true
+              refreshedAccessToken = refreshResult.accessToken
             }
           } catch (refreshError) {
             logger.warn(
@@ -762,8 +758,12 @@ class ClaudeRelayService {
               // 如果重试成功（200/201），跳过错误处理
               if (response.statusCode === 200 || response.statusCode === 201) {
                 // 移除监听器
-                if (clientRequest) clientRequest.removeListener('close', handleClientDisconnect)
-                if (clientResponse) clientResponse.removeListener('close', handleClientDisconnect)
+                if (clientRequest) {
+                  clientRequest.removeListener('close', handleClientDisconnect)
+                }
+                if (clientResponse) {
+                  clientResponse.removeListener('close', handleClientDisconnect)
+                }
                 // 清理 bodyStore
                 this.bodyStore.delete(bodyStoreIdNonStream)
                 return response
@@ -2404,21 +2404,16 @@ class ClaudeRelayService {
                   logger.info(
                     `🔄 [Stream] Attempting credentials-based token refresh for account ${accountId} due to 401...`
                   )
-                  const refreshResult =
-                    await claudeAccountService.refreshTokenViaCredentials(accountId)
-                  if (refreshResult && refreshResult.success) {
-                    // 🛡️ 校验 token 是否真的变了（防止 refresh "假成功" 导致循环）
-                    if (refreshResult.accessToken && refreshResult.accessToken !== accessToken) {
-                      logger.success(
-                        `✅ [Stream] Token refreshed successfully via credentials for account ${accountId}`
-                      )
-                      refreshSuccess = true
-                      refreshedAccessToken = refreshResult.accessToken
-                    } else {
-                      logger.warn(
-                        `⚠️ [Stream] Refresh returned unchanged accessToken for account ${accountId}, treating as failure`
-                      )
-                    }
+                  const refreshResult = await claudeAccountService.refreshTokenViaCredentials(
+                    accountId,
+                    'upstream_error'
+                  )
+                  if (refreshResult && refreshResult.success && refreshResult.accessToken) {
+                    logger.success(
+                      `✅ [Stream] Token refreshed successfully via credentials for account ${accountId}`
+                    )
+                    refreshSuccess = true
+                    refreshedAccessToken = refreshResult.accessToken
                   }
                 } catch (refreshError) {
                   logger.warn(

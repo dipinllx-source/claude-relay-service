@@ -82,50 +82,6 @@ class ClaudeAccountService {
   }
 
   // 📂 获取或设置 credentials.json 文件路径
-  // 🔁 启动迁移：把旧账号 axios 双开关默认写为 'false'
-  // - 仅写缺失字段；已有任何值（包括 'true'）的账号不动
-  // - idempotent：可重复运行
-  async migrateAxiosOptInDefaults() {
-    try {
-      const accounts = await redis.getAllClaudeAccounts()
-      let migrated = 0
-      for (const account of accounts) {
-        const needsEnabled = !Object.prototype.hasOwnProperty.call(account, 'axiosRefreshEnabled')
-        const needsConfirmed = !Object.prototype.hasOwnProperty.call(
-          account,
-          'axiosCloudflareConfirmed'
-        )
-        const needsBlockedAt = !Object.prototype.hasOwnProperty.call(account, 'axiosLastBlockedAt')
-        const needsBlockedReason = !Object.prototype.hasOwnProperty.call(
-          account,
-          'axiosBlockedReason'
-        )
-        if (!needsEnabled && !needsConfirmed && !needsBlockedAt && !needsBlockedReason) {
-          continue
-        }
-        if (needsEnabled) {
-          account.axiosRefreshEnabled = 'false'
-        }
-        if (needsConfirmed) {
-          account.axiosCloudflareConfirmed = 'false'
-        }
-        if (needsBlockedAt) {
-          account.axiosLastBlockedAt = ''
-        }
-        if (needsBlockedReason) {
-          account.axiosBlockedReason = ''
-        }
-        await redis.setClaudeAccount(account.id, account)
-        migrated++
-      }
-      logger.info(`axios opt-in defaults written to ${migrated} accounts`)
-      return migrated
-    } catch (error) {
-      logger.error('Failed to migrate axios opt-in defaults:', error)
-      return 0
-    }
-  }
-
   async getCredentialsPath() {
     try {
       const client = redis.getClientSafe()
@@ -153,9 +109,8 @@ class ClaudeAccountService {
     }
   }
 
-  // 🏷️ 把 refresh 失败归类为 6 个枚举之一，用于失败处置矩阵
-  // 枚举: 'invalid_grant' | 'oauth_network' | 'cloudflare_blocked'
-  //       | 'cli_subprocess' | 'cli_no_op' | 'file_path_error'
+  // 🏷️ 把 refresh 失败归类为 5 个枚举之一，用于失败处置矩阵
+  // 枚举: 'invalid_grant' | 'oauth_network' | 'cli_subprocess' | 'cli_no_op' | 'file_path_error'
   _classifyRefreshError(err, ctx = {}) {
     if (ctx.kind === 'cli_no_op') {
       return 'cli_no_op'
@@ -166,15 +121,8 @@ class ClaudeAccountService {
     if (ctx.kind === 'file_path_error') {
       return 'file_path_error'
     }
-    // axios 抛错时携带 categoryHint（_axiosRefresh 在 CF 命中时显式打的标）
-    if (err && err.categoryHint) {
-      return err.categoryHint
-    }
-    // axios 响应异常：先检测 Cloudflare，再走默认 4xx/5xx 分类
+    // axios 错误：
     if (err && err.response && err.response.status) {
-      if (this._isCloudflareBlocked(err.response)) {
-        return 'cloudflare_blocked'
-      }
       const { status } = err.response
       if (status >= 400 && status < 500) {
         return 'invalid_grant'
@@ -194,48 +142,6 @@ class ClaudeAccountService {
     }
     // 默认作为网络问题，避免误置 status='error'
     return 'oauth_network'
-  }
-
-  // 🚧 检测 Cloudflare WAF 拦截
-  // 仅在非 200 响应上判定，避免合法转发的 200 响应被误判
-  _isCloudflareBlocked(response) {
-    if (!response || response.status === 200) {
-      return false
-    }
-    if (response.status !== 403) {
-      return false
-    }
-    const headers = response.headers || {}
-    const lowerHeaders = {}
-    for (const [k, v] of Object.entries(headers)) {
-      lowerHeaders[k.toLowerCase()] = v
-    }
-    if (
-      lowerHeaders['cf-mitigated'] ||
-      lowerHeaders['cf-ray'] ||
-      (typeof lowerHeaders['server'] === 'string' && /cloudflare/i.test(lowerHeaders['server']))
-    ) {
-      return true
-    }
-    const body = response.data
-    if (typeof body === 'string' && /Cloudflare|Ray ID|Attention Required|cf-error/i.test(body)) {
-      return true
-    }
-    return false
-  }
-
-  // 📝 提炼 Cloudflare 拦截原因描述（供 axiosBlockedReason 写入）
-  _extractCloudflareReason(response) {
-    const headers = (response && response.headers) || {}
-    const lowerHeaders = {}
-    for (const [k, v] of Object.entries(headers)) {
-      lowerHeaders[k.toLowerCase()] = v
-    }
-    const cfRay = lowerHeaders['cf-ray']
-    if (cfRay) {
-      return `Cloudflare WAF blocked direct OAuth call (cf-ray=${cfRay})`
-    }
-    return 'Cloudflare WAF blocked direct OAuth call'
   }
 
   // ⏱️ Poll credentials file mtime 直到推进或超时
@@ -354,9 +260,7 @@ class ClaudeAccountService {
       }
 
       // CLI 重试循环：最多 3 次
-      // 累计是否有任意一次 attempt 触发子进程错误，决定 CLI 耗尽时的最终分类
       const MAX_CLI_ATTEMPTS = 3
-      let hadAnySubprocessError = false
       for (let attempt = 1; attempt <= MAX_CLI_ATTEMPTS; attempt++) {
         let baselineMtimeMs = 0
         try {
@@ -373,7 +277,6 @@ class ClaudeAccountService {
           })
         } catch (cmdError) {
           cliSubprocessError = cmdError
-          hadAnySubprocessError = true
           logger.warn(`claude -p attempt ${attempt} subprocess error: ${cmdError.message}`)
         }
 
@@ -390,19 +293,19 @@ class ClaudeAccountService {
         }
 
         if (previousAccessToken && previousAccessToken === credentials.accessToken) {
-          // 当前 attempt no-op；最终 cliExhaustedCategory 在循环外按 hadAnySubprocessError 决定
-          const attemptCategory = cliSubprocessError ? 'cli_subprocess' : 'cli_no_op'
+          // CLI no-op：本次未刷新
+          lastErrorCategory = cliSubprocessError ? 'cli_subprocess' : 'cli_no_op'
           lastError =
             cliSubprocessError ||
             new Error(`CLI no-op on attempt ${attempt} (file accessToken unchanged)`)
           logger.info(
-            `claude -p attempt ${attempt}/${MAX_CLI_ATTEMPTS} no-op (attemptCategory=${attemptCategory})`
+            `claude -p attempt ${attempt}/${MAX_CLI_ATTEMPTS} no-op (category=${lastErrorCategory})`
           )
           if (attempt < MAX_CLI_ATTEMPTS) {
             await new Promise((resolve) => setTimeout(resolve, this._backoffDelayMs(attempt)))
             continue
           }
-          break // 3 次耗尽，跳出循环
+          break // 3 次耗尽，跳出循环进入 axios 兜底
         }
 
         // CLI 真的刷新了 → 原子写 cache 并 return
@@ -432,27 +335,6 @@ class ClaudeAccountService {
           accessToken: credentials.accessToken,
           expiresAt: accountData.expiresAt
         }
-      }
-
-      // CLI 三次耗尽：根据 hadAnySubprocessError 决定 "如果不进 axios" 时的最终 category
-      const cliExhaustedCategory = hadAnySubprocessError ? 'cli_subprocess' : 'cli_no_op'
-
-      // axios 门控：双开关都为 'true' 才允许进入 axios 兜底
-      const axiosEnabled =
-        accountData.axiosRefreshEnabled === 'true' &&
-        accountData.axiosCloudflareConfirmed === 'true'
-
-      if (!axiosEnabled) {
-        lastErrorCategory = cliExhaustedCategory
-        lastError = new Error(
-          cliExhaustedCategory === 'cli_no_op'
-            ? 'CLI cannot refresh token (file refresh_token rejected)'
-            : 'CLI subprocess errors prevented refresh'
-        )
-        logger.info(
-          `axios fallback disabled for ${accountData.name} (${accountId}); CLI exhausted category=${cliExhaustedCategory}`
-        )
-        throw lastError
       }
 
       // 3 次 CLI 都未变 → 进入 axios 兜底
@@ -492,12 +374,18 @@ class ClaudeAccountService {
       const errorObj = lastError || error
       const accountData = await redis.getClaudeAccount(accountId)
       if (accountData) {
-        logRefreshError(accountId, accountData.name, 'claude', errorObj, 1, category)
+        logRefreshError(accountId, accountData.name, 'claude', errorObj)
         const isAutoProtectionDisabled =
           accountData.disableAutoProtection === true || accountData.disableAutoProtection === 'true'
 
-        // status='error' 写入路径：受 disableAutoProtection 豁免
-        const writeErrorStatus = async () => {
+        if (category === 'oauth_network') {
+          await upstreamErrorHelper
+            .markTempUnavailable(accountId, 'claude-official', 503, null, {
+              errorBody: errorObj.message,
+              source: 'token_refresh'
+            })
+            .catch(() => {})
+        } else if (category === 'invalid_grant' || category === 'file_path_error') {
           if (isAutoProtectionDisabled) {
             logger.info(
               `Account ${accountData.name} has auto-protection disabled, skipping error status`
@@ -512,64 +400,22 @@ class ClaudeAccountService {
             accountData.errorMessage = `Refresh failed (${category}): ${errorObj.message}`
             await redis.setClaudeAccount(accountId, accountData)
           }
-        }
-
-        // temp_unavailable 冷却（与 status 是独立状态机，不受 disableAutoProtection 影响）
-        const writeTempUnavailable = async () => {
-          await upstreamErrorHelper
-            .markTempUnavailable(accountId, 'claude-official', 503, null, {
-              errorBody: errorObj.message,
-              source: 'token_refresh'
-            })
-            .catch(() => {})
-        }
-
-        let webhookSpec = null
-
-        if (category === 'cloudflare_blocked') {
-          // CF 拦截：自动关闭 axios 开关 + 重置确认 + 记录拦截信息
-          // 不写 status='error'，不发 credential webhook
-          await writeTempUnavailable()
-          const cfResponse = errorObj && errorObj.response ? errorObj.response : null
-          accountData.axiosRefreshEnabled = 'false'
-          accountData.axiosCloudflareConfirmed = 'false'
-          accountData.axiosLastBlockedAt = new Date().toISOString()
-          accountData.axiosBlockedReason = cfResponse
-            ? this._extractCloudflareReason(cfResponse)
-            : 'Cloudflare WAF blocked direct OAuth call'
-          await redis.setClaudeAccount(accountId, accountData)
-          webhookSpec = {
-            errorCode: 'CLAUDE_REFRESH_CLOUDFLARE_BLOCKED',
-            reason: `Refresh failed (cloudflare_blocked): ${accountData.axiosBlockedReason}`
-          }
-        } else if (category === 'oauth_network') {
-          await writeTempUnavailable()
-        } else if (category === 'cli_subprocess') {
-          await writeTempUnavailable()
-        } else if (category === 'cli_no_op') {
-          await writeErrorStatus()
-          webhookSpec = {
-            errorCode: 'CLAUDE_REFRESH_CLI_NO_OP',
-            reason: `Refresh failed (cli_no_op): ${errorObj.message}`
-          }
-        } else if (category === 'invalid_grant') {
-          await writeErrorStatus()
-          webhookSpec = {
-            errorCode: 'CLAUDE_REFRESH_INVALID_GRANT',
-            reason: `Refresh failed (invalid_grant): ${errorObj.message}`
-          }
-        } else if (category === 'file_path_error') {
-          await writeErrorStatus()
-          webhookSpec = {
-            errorCode: 'CLAUDE_REFRESH_FILE_PATH_ERROR',
-            reason: `Refresh failed (file_path_error): ${errorObj.message}`
-          }
         } else {
-          // 未知 category 兜底：保守地走短冷却，不下线
-          await writeTempUnavailable()
+          // cli_subprocess / cli_no_op：理论上已被 axios 兜底替换，保底逻辑
+          if (!isAutoProtectionDisabled) {
+            accountData.status = 'error'
+            accountData.errorMessage = `Refresh failed (${category}): ${errorObj.message}`
+            await redis.setClaudeAccount(accountId, accountData)
+          } else {
+            upstreamErrorHelper
+              .recordErrorHistory(accountId, 'claude-official', 0, `refresh_${category}`, {
+                errorBody: errorObj.message
+              })
+              .catch(() => {})
+          }
         }
 
-        if (webhookSpec) {
+        if (category === 'invalid_grant' || category === 'file_path_error') {
           try {
             const webhookNotifier = require('../../utils/webhookNotifier')
             await webhookNotifier.sendAccountAnomalyNotification({
@@ -577,8 +423,11 @@ class ClaudeAccountService {
               accountName: accountData.name,
               platform: 'claude-credentials',
               status: 'error',
-              errorCode: webhookSpec.errorCode,
-              reason: webhookSpec.reason
+              errorCode:
+                category === 'invalid_grant'
+                  ? 'CLAUDE_REFRESH_INVALID_GRANT'
+                  : 'CLAUDE_REFRESH_FILE_PATH_ERROR',
+              reason: `Refresh failed (${category}): ${errorObj.message}`
             })
           } catch (webhookError) {
             logger.error('Failed to send webhook:', webhookError)
@@ -625,31 +474,19 @@ class ClaudeAccountService {
       axiosConfig.proxy = false
     }
 
-    let response
-    try {
-      response = await axios.post(
-        this.claudeApiUrl,
-        {
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-          client_id: this.claudeOauthClientId
-        },
-        axiosConfig
-      )
-    } catch (axiosError) {
-      // axios 抛错时（含 4xx/5xx 配置 throwHttpErrors）：先检测 CF 再透传
-      if (axiosError && axiosError.response && this._isCloudflareBlocked(axiosError.response)) {
-        axiosError.categoryHint = 'cloudflare_blocked'
-      }
-      throw axiosError
-    }
+    const response = await axios.post(
+      this.claudeApiUrl,
+      {
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        client_id: this.claudeOauthClientId
+      },
+      axiosConfig
+    )
 
     if (response.status !== 200) {
       const err = new Error(`axios refresh non-200: ${response.status}`)
       err.response = response
-      if (this._isCloudflareBlocked(response)) {
-        err.categoryHint = 'cloudflare_blocked'
-      }
       throw err
     }
 
@@ -795,12 +632,7 @@ class ClaudeAccountService {
         // 账号级临时冷却覆盖（空字符串表示跟随全局配置）
         disableTempUnavailable: normalizedTempUnavailablePolicy.disableTempUnavailable.toString(),
         tempUnavailable503TtlSeconds: normalized503Ttl !== null ? normalized503Ttl.toString() : '',
-        tempUnavailable5xxTtlSeconds: normalized5xxTtl !== null ? normalized5xxTtl.toString() : '',
-        // axios OAuth fallback 默认关闭；启用前必须勾选 Cloudflare 不拦截确认
-        axiosRefreshEnabled: 'false',
-        axiosCloudflareConfirmed: 'false',
-        axiosLastBlockedAt: '',
-        axiosBlockedReason: ''
+        tempUnavailable5xxTtlSeconds: normalized5xxTtl !== null ? normalized5xxTtl.toString() : ''
       }
     } else {
       // 兼容旧格式
@@ -840,12 +672,7 @@ class ClaudeAccountService {
         // 账号级临时冷却覆盖（空字符串表示跟随全局配置）
         disableTempUnavailable: normalizedTempUnavailablePolicy.disableTempUnavailable.toString(),
         tempUnavailable503TtlSeconds: normalized503Ttl !== null ? normalized503Ttl.toString() : '',
-        tempUnavailable5xxTtlSeconds: normalized5xxTtl !== null ? normalized5xxTtl.toString() : '',
-        // axios OAuth fallback 默认关闭；启用前必须勾选 Cloudflare 不拦截确认
-        axiosRefreshEnabled: 'false',
-        axiosCloudflareConfirmed: 'false',
-        axiosLastBlockedAt: '',
-        axiosBlockedReason: ''
+        tempUnavailable5xxTtlSeconds: normalized5xxTtl !== null ? normalized5xxTtl.toString() : ''
       }
     }
 
@@ -1303,12 +1130,7 @@ class ClaudeAccountService {
             tempUnavailable503TtlSeconds:
               normalizedTempUnavailablePolicy.tempUnavailable503TtlSeconds,
             tempUnavailable5xxTtlSeconds:
-              normalizedTempUnavailablePolicy.tempUnavailable5xxTtlSeconds,
-            // axios OAuth fallback 配置（前端控制开关 + 显示拦截历史）
-            axiosRefreshEnabled: account.axiosRefreshEnabled === 'true',
-            axiosCloudflareConfirmed: account.axiosCloudflareConfirmed === 'true',
-            axiosLastBlockedAt: account.axiosLastBlockedAt || null,
-            axiosBlockedReason: account.axiosBlockedReason || ''
+              normalizedTempUnavailablePolicy.tempUnavailable5xxTtlSeconds
           }
         })
       )
@@ -1405,29 +1227,8 @@ class ClaudeAccountService {
         'interceptWarmup',
         'disableTempUnavailable',
         'tempUnavailable503TtlSeconds',
-        'tempUnavailable5xxTtlSeconds',
-        'axiosRefreshEnabled',
-        'axiosCloudflareConfirmed'
+        'tempUnavailable5xxTtlSeconds'
       ]
-
-      // axios 双开关 invariant：enabled='true' 必须配 confirmed='true'
-      // 取目标值（更新值优先，缺失时 fallback 到现有值）
-      const targetEnabled = Object.prototype.hasOwnProperty.call(updates, 'axiosRefreshEnabled')
-        ? parseBooleanLike(updates.axiosRefreshEnabled)
-        : accountData.axiosRefreshEnabled === 'true'
-      const targetConfirmed = Object.prototype.hasOwnProperty.call(
-        updates,
-        'axiosCloudflareConfirmed'
-      )
-        ? parseBooleanLike(updates.axiosCloudflareConfirmed)
-        : accountData.axiosCloudflareConfirmed === 'true'
-      if (targetEnabled && !targetConfirmed) {
-        const validationError = new Error(
-          'axiosRefreshEnabled requires axiosCloudflareConfirmed=true'
-        )
-        validationError.statusCode = 400
-        throw validationError
-      }
       const updatedData = { ...accountData }
       let shouldClearAutoStopFields = false
       let extInfoProvided = false
@@ -1444,8 +1245,6 @@ class ClaudeAccountService {
           } else if (field === 'priority' || field === 'maxConcurrency') {
             updatedData[field] = value.toString()
           } else if (field === 'disableTempUnavailable') {
-            updatedData[field] = parseBooleanLike(value) ? 'true' : 'false'
-          } else if (field === 'axiosRefreshEnabled' || field === 'axiosCloudflareConfirmed') {
             updatedData[field] = parseBooleanLike(value) ? 'true' : 'false'
           } else if (
             field === 'tempUnavailable503TtlSeconds' ||
