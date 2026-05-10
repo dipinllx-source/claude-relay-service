@@ -95,7 +95,7 @@ function logRefreshSuccess(accountId, accountName, platform = 'claude', tokenDat
  *
  * @param {string} category - 失败分类，便于按类别检索：
  *   'invalid_grant' / 'oauth_network' / 'cloudflare_blocked' /
- *   'cli_subprocess' / 'cli_no_op' / 'file_path_error'
+ *   'cli_subprocess' / 'cli_no_op' / 'cli_not_found' / 'file_path_error'
  *   非法或缺失值会按字面量记录，不做强校验。
  */
 function logRefreshError(

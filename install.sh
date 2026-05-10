@@ -201,6 +201,29 @@ if (( NEED_NODE )); then
   ok "Node $(node -v)"
 fi
 
+# ---------- 2.5. Claude Code CLI ----------
+# Token 刷新依赖 `claude -p`，binary 必须落在 systemd 服务的 PATH 内
+# 强制 --prefix=/usr/local 避免 NVM 环境把全局安装挂到 ~/.nvm/.../bin（systemd 看不到）
+CLAUDE_SYSTEM_PATH=/usr/local/bin/claude
+if [[ -x $CLAUDE_SYSTEM_PATH ]]; then
+  ok "Claude Code 已存在: $CLAUDE_SYSTEM_PATH"
+elif command -v claude >/dev/null 2>&1 && [[ $(command -v claude) == /usr/bin/claude ]]; then
+  ok "Claude Code 已存在: $(command -v claude)"
+else
+  log "安装 Claude Code CLI (@anthropic-ai/claude-code → /usr/local)"
+  # env -i 避免 NVM 注入；显式 PATH + prefix 锁定到系统位置
+  if env -i PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin HOME=/root \
+      /usr/bin/npm i -g --prefix=/usr/local @anthropic-ai/claude-code 2>&1 | tail -5; then
+    if [[ -x $CLAUDE_SYSTEM_PATH ]]; then
+      ok "Claude Code: $CLAUDE_SYSTEM_PATH ($("$CLAUDE_SYSTEM_PATH" --version 2>/dev/null | head -1))"
+    else
+      warn "Claude Code 安装完成但 $CLAUDE_SYSTEM_PATH 不存在；服务启动后可能命中 cli_not_found"
+    fi
+  else
+    warn "Claude Code 安装失败，刷新 token 时会归类为 cli_not_found；可在 .env 显式设置 CLAUDE_BIN"
+  fi
+fi
+
 # ---------- 3. Redis ----------
 # 找一个未被监听的端口 (从 6380 起)
 find_free_port() {
@@ -405,6 +428,9 @@ User=${SERVICE_USER}
 Group=${SERVICE_USER}
 WorkingDirectory=${INSTALL_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
+# 显式 PATH，确保 claude CLI（系统 npm 全局装到 /usr/local/bin 或 /usr/bin）可被 spawn
+# .env 内可用 CLAUDE_BIN=/path/to/claude 显式指定绝对路径覆盖此查找
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin
 ExecStart=/usr/bin/node ${INSTALL_DIR}/src/app.js
 Restart=always
 RestartSec=5

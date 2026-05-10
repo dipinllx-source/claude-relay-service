@@ -94,6 +94,7 @@ class WebhookNotifier {
         invalid_grant: 'CLAUDE_REFRESH_INVALID_GRANT',
         file_path_error: 'CLAUDE_REFRESH_FILE_PATH_ERROR',
         cli_no_op: 'CLAUDE_REFRESH_CLI_NO_OP',
+        cli_not_found: 'CLAUDE_REFRESH_CLI_NOT_FOUND',
         cloudflare_blocked: 'CLAUDE_REFRESH_CLOUDFLARE_BLOCKED'
       },
       'claude-console': {

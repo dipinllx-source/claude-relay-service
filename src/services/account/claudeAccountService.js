@@ -153,15 +153,64 @@ class ClaudeAccountService {
     }
   }
 
-  // 🏷️ 把 refresh 失败归类为 6 个枚举之一，用于失败处置矩阵
+  // 🔎 解析 claude CLI 二进制绝对路径（懒加载 + 单次缓存）
+  // 优先级：CLAUDE_BIN env > 走 PATH 找 > null
+  // null 表示 binary 不存在，调用方应直接归类为 cli_not_found 跳过 CLI 流程
+  _getClaudeBinPath() {
+    if (this._claudeBinPathResolved) {
+      return this._claudeBinPath
+    }
+    this._claudeBinPathResolved = true
+
+    const isExecutable = (p) => {
+      try {
+        fs.accessSync(p, fs.constants.X_OK)
+        return true
+      } catch (_) {
+        return false
+      }
+    }
+
+    const envBin = process.env.CLAUDE_BIN && process.env.CLAUDE_BIN.trim()
+    if (envBin) {
+      if (isExecutable(envBin)) {
+        this._claudeBinPath = envBin
+        logger.info(`claude binary resolved at ${envBin} (via CLAUDE_BIN)`)
+        return this._claudeBinPath
+      }
+      logger.warn(`CLAUDE_BIN=${envBin} is not executable; falling back to PATH lookup`)
+    }
+
+    const pathDirs = (process.env.PATH || '').split(nodePath.delimiter).filter(Boolean)
+    for (const dir of pathDirs) {
+      const candidate = nodePath.join(dir, 'claude')
+      if (isExecutable(candidate)) {
+        this._claudeBinPath = candidate
+        logger.info(`claude binary resolved at ${candidate} (via PATH)`)
+        return this._claudeBinPath
+      }
+    }
+
+    this._claudeBinPath = null
+    logger.warn(
+      'claude binary NOT found in PATH; refresh will fail-fast as cli_not_found. ' +
+        'Run install.sh or set CLAUDE_BIN to fix.'
+    )
+    return null
+  }
+
+  // 🏷️ 把 refresh 失败归类为 7 个枚举之一，用于失败处置矩阵
   // 枚举: 'invalid_grant' | 'oauth_network' | 'cloudflare_blocked'
-  //       | 'cli_subprocess' | 'cli_no_op' | 'file_path_error'
+  //       | 'cli_subprocess' | 'cli_no_op' | 'cli_not_found' | 'file_path_error'
   _classifyRefreshError(err, ctx = {}) {
     if (ctx.kind === 'cli_no_op') {
       return 'cli_no_op'
     }
     if (ctx.kind === 'cli_subprocess') {
       return 'cli_subprocess'
+    }
+    if (ctx.kind === 'cli_not_found') {
+      return 'cli_not_found'
     }
     if (ctx.kind === 'file_path_error') {
       return 'file_path_error'
@@ -353,10 +402,21 @@ class ClaudeAccountService {
         throw pathError
       }
 
+      // 解析 claude CLI 二进制路径；找不到立即归类 cli_not_found 跳过 CLI 流程
+      const claudeBinPath = this._getClaudeBinPath()
+      if (!claudeBinPath) {
+        lastErrorCategory = 'cli_not_found'
+        lastError = new Error(
+          'claude binary not found in PATH (set CLAUDE_BIN or run install.sh to install Claude Code)'
+        )
+        throw lastError
+      }
+
       // CLI 重试循环：最多 3 次
       // 累计是否有任意一次 attempt 触发子进程错误，决定 CLI 耗尽时的最终分类
       const MAX_CLI_ATTEMPTS = 3
       let hadAnySubprocessError = false
+      let hadCliBinaryMissing = false
       for (let attempt = 1; attempt <= MAX_CLI_ATTEMPTS; attempt++) {
         let baselineMtimeMs = 0
         try {
@@ -367,12 +427,21 @@ class ClaudeAccountService {
 
         let cliSubprocessError = null
         try {
-          await execFileAsync('claude', ['-p', 'hello world'], {
+          await execFileAsync(claudeBinPath, ['-p', 'hello world'], {
             timeout: 60000,
             encoding: 'utf-8'
           })
         } catch (cmdError) {
           cliSubprocessError = cmdError
+          // ENOENT 防御：解析时存在但 spawn 时消失（极罕见，比如运维误删）
+          if (cmdError.code === 'ENOENT') {
+            hadCliBinaryMissing = true
+            logger.error(
+              `claude binary disappeared between resolve and spawn: ${claudeBinPath}; aborting CLI loop`
+            )
+            lastError = cmdError
+            break
+          }
           hadAnySubprocessError = true
           logger.warn(`claude -p attempt ${attempt} subprocess error: ${cmdError.message}`)
         }
@@ -434,8 +503,15 @@ class ClaudeAccountService {
         }
       }
 
-      // CLI 三次耗尽：根据 hadAnySubprocessError 决定 "如果不进 axios" 时的最终 category
-      const cliExhaustedCategory = hadAnySubprocessError ? 'cli_subprocess' : 'cli_no_op'
+      // CLI 耗尽：cli_not_found > cli_subprocess > cli_no_op（按严重度优先）
+      // - 中途 ENOENT（hadCliBinaryMissing）：环境问题，最高优先级
+      // - 任意一次子进程错误：cli_subprocess
+      // - 全部 no-op：cli_no_op（refresh_token 已被拒绝）
+      const cliExhaustedCategory = hadCliBinaryMissing
+        ? 'cli_not_found'
+        : hadAnySubprocessError
+          ? 'cli_subprocess'
+          : 'cli_no_op'
 
       // axios 门控：双开关都为 'true' 才允许进入 axios 兜底
       const axiosEnabled =
@@ -444,11 +520,13 @@ class ClaudeAccountService {
 
       if (!axiosEnabled) {
         lastErrorCategory = cliExhaustedCategory
-        lastError = new Error(
-          cliExhaustedCategory === 'cli_no_op'
-            ? 'CLI cannot refresh token (file refresh_token rejected)'
-            : 'CLI subprocess errors prevented refresh'
-        )
+        const exhaustMessage =
+          cliExhaustedCategory === 'cli_not_found'
+            ? 'claude binary not found in PATH (set CLAUDE_BIN or run install.sh to install Claude Code)'
+            : cliExhaustedCategory === 'cli_no_op'
+              ? 'CLI cannot refresh token (file refresh_token rejected)'
+              : 'CLI subprocess errors prevented refresh'
+        lastError = new Error(exhaustMessage)
         logger.info(
           `axios fallback disabled for ${accountData.name} (${accountId}); CLI exhausted category=${cliExhaustedCategory}`
         )
@@ -546,6 +624,13 @@ class ClaudeAccountService {
           await writeTempUnavailable()
         } else if (category === 'cli_subprocess') {
           await writeTempUnavailable()
+        } else if (category === 'cli_not_found') {
+          // CLI 二进制不存在：环境问题，温和冷却 + 醒目 webhook 让运维介入
+          await writeTempUnavailable()
+          webhookSpec = {
+            errorCode: 'CLAUDE_REFRESH_CLI_NOT_FOUND',
+            reason: `Refresh failed (cli_not_found): ${errorObj.message}`
+          }
         } else if (category === 'cli_no_op') {
           await writeErrorStatus()
           webhookSpec = {
@@ -1145,10 +1230,10 @@ class ClaudeAccountService {
         throw new Error('Account is disabled')
       }
 
-      // 检查token是否过期
+      // 检查token是否过期（严格判断：实际过期才刷新，不提前）
       const expiresAt = parseInt(accountData.expiresAt)
       const now = Date.now()
-      const isExpired = !expiresAt || now >= expiresAt - 60000 // 60秒提前刷新
+      const isExpired = !expiresAt || now >= expiresAt
 
       // 记录token使用情况
       logTokenUsage(accountId, accountData.name, 'claude', accountData.expiresAt, isExpired)
