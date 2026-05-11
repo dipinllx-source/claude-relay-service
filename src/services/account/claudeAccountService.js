@@ -467,6 +467,11 @@ class ClaudeAccountService {
           logger.info(
             `claude -p attempt ${attempt}/${MAX_CLI_ATTEMPTS} no-op (attemptCategory=${attemptCategory})`
           )
+          // subprocess 成功且 accessToken 未变化 → 直接归类 cli_no_op，不再重试
+          // 重复调用成功的 claude -p 可能被上游识别为异常活动；仅 subprocess 错误才走退避重试
+          if (!cliSubprocessError) {
+            break
+          }
           if (attempt < MAX_CLI_ATTEMPTS) {
             await new Promise((resolve) => setTimeout(resolve, this._backoffDelayMs(attempt)))
             continue
