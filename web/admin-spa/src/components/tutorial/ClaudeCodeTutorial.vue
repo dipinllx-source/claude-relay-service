@@ -30,16 +30,52 @@
         <div class="tutorial-command-box mb-4">
           <div class="mb-2"># 全局安装 Claude Code</div>
           <div class="whitespace-nowrap text-gray-300">
-            {{
-              platform === 'windows'
-                ? 'npm install -g @anthropic-ai/claude-code'
-                : 'sudo npm install -g @anthropic-ai/claude-code'
-            }}
+            npm install -g @anthropic-ai/claude-code
           </div>
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400">
           这个命令会从 npm 官方仓库下载并安装最新版本的 Claude Code。
         </p>
+
+        <div
+          class="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-500/40 dark:bg-amber-950/30 sm:p-4"
+        >
+          <h6 class="mb-2 text-sm font-medium text-amber-800 dark:text-amber-300 sm:text-base">
+            中国大陆网络环境（可选）
+          </h6>
+          <p class="mb-3 text-xs text-amber-700 dark:text-amber-300 sm:text-sm">
+            如果访问 npm 官方仓库较慢或超时，可以临时使用 npmmirror 镜像安装：
+          </p>
+          <div class="tutorial-command-box mb-4">
+            <div class="mb-2"># 方法一：本次安装临时使用镜像（推荐）</div>
+            <div class="whitespace-nowrap text-gray-300">
+              npm install -g @anthropic-ai/claude-code --registry=https://registry.npmmirror.com
+            </div>
+          </div>
+
+          <p class="mb-3 text-xs text-amber-700 dark:text-amber-300 sm:text-sm">
+            如果你经常需要使用镜像，也可以临时切换 npm registry，安装完成后再恢复官方源：
+          </p>
+          <div class="tutorial-command-box">
+            <div class="mb-2"># 方法二：切换 npm registry 后安装，再恢复官方源</div>
+            <div class="whitespace-nowrap text-gray-300">
+              npm config set registry https://registry.npmmirror.com
+            </div>
+            <div class="whitespace-nowrap text-gray-300">
+              npm install -g @anthropic-ai/claude-code
+            </div>
+            <div class="whitespace-nowrap text-gray-300">
+              npm config set registry https://registry.npmjs.org/
+            </div>
+          </div>
+
+          <ul class="mt-3 space-y-1 text-xs text-amber-700 dark:text-amber-300 sm:text-sm">
+            <li>• 如果提示原生平台包缺失，请确认镜像已经同步最新版本后重试</li>
+            <li>
+              • 请确保 npm 没有禁用 optional dependencies，否则 Claude Code 原生二进制可能不会被安装
+            </li>
+          </ul>
+        </div>
 
         <div
           class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-500/40 dark:bg-blue-950/30 sm:p-4"
@@ -53,8 +89,8 @@
               <li>• 如果遇到权限问题，以管理员身份运行 PowerShell</li>
             </template>
             <template v-else-if="platform === 'macos'">
-              <li>• 如果遇到权限问题，可以使用 sudo</li>
-              <li>• 或者使用 nvm 安装的 Node.js 避免权限问题</li>
+              <li>• 不建议使用 sudo 安装全局 npm 包</li>
+              <li>• 如果遇到权限问题，优先使用 nvm 或修复 npm 全局安装目录</li>
             </template>
             <template v-else>
               <li>• 使用 nvm 安装的 Node.js 可以避免 sudo</li>
@@ -303,7 +339,7 @@
         <div class="space-y-4">
           <div>
             <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
-              启动 Claude Code
+              交互式启动
             </h6>
             <div class="tutorial-command-box">
               <div class="whitespace-nowrap text-gray-300">claude</div>
@@ -324,6 +360,76 @@
               </div>
               <div class="mb-2 mt-2"># 启动 Claude Code</div>
               <div class="whitespace-nowrap text-gray-300">claude</div>
+            </div>
+          </div>
+
+          <div>
+            <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
+              带初始问题启动
+            </h6>
+            <div class="tutorial-command-box">
+              <div class="whitespace-nowrap text-gray-300">claude "请先帮我理解这个项目结构"</div>
+            </div>
+          </div>
+
+          <div>
+            <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
+              一次性询问并退出（适合验证配置）
+            </h6>
+            <div class="tutorial-command-box">
+              <div class="whitespace-nowrap text-gray-300">claude -p "用一句话介绍当前项目"</div>
+            </div>
+          </div>
+
+          <div>
+            <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
+              继续或恢复会话
+            </h6>
+            <div class="tutorial-command-box">
+              <div class="mb-2"># 继续当前目录最近一次会话</div>
+              <div class="whitespace-nowrap text-gray-300">claude -c</div>
+              <div class="mb-2 mt-2"># 使用会话 ID 恢复指定会话</div>
+              <div class="whitespace-nowrap text-gray-300">
+                claude -r "abc123" "继续完成上次的任务"
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
+              诊断安装和环境
+            </h6>
+            <div class="tutorial-command-box">
+              <div class="whitespace-nowrap text-gray-300">claude doctor</div>
+            </div>
+          </div>
+
+          <div>
+            <h6 class="mb-2 text-sm font-medium text-gray-800 dark:text-gray-300 sm:text-base">
+              使用当前中转服务临时启动
+            </h6>
+            <p class="mb-2 text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
+              如果不想永久写入环境变量，可以在当前终端会话中设置后直接启动：
+            </p>
+            <div class="tutorial-command-box">
+              <template v-if="platform === 'windows'">
+                <div class="whitespace-nowrap text-gray-300">
+                  $env:ANTHROPIC_BASE_URL = "{{ currentBaseUrl }}"
+                </div>
+                <div class="whitespace-nowrap text-gray-300">
+                  $env:ANTHROPIC_AUTH_TOKEN = "你的API密钥"
+                </div>
+                <div class="whitespace-nowrap text-gray-300">claude</div>
+              </template>
+              <template v-else>
+                <div class="whitespace-nowrap text-gray-300">
+                  export ANTHROPIC_BASE_URL="{{ currentBaseUrl }}"
+                </div>
+                <div class="whitespace-nowrap text-gray-300">
+                  export ANTHROPIC_AUTH_TOKEN="你的API密钥"
+                </div>
+                <div class="whitespace-nowrap text-gray-300">claude</div>
+              </template>
             </div>
           </div>
         </div>
@@ -360,9 +466,42 @@
                 </li>
               </template>
               <template v-else>
-                <li>使用 sudo 运行安装命令</li>
-                <li>或者使用 nvm 安装 Node.js 避免权限问题</li>
+                <li>不建议直接依赖 sudo 安装全局 npm 包</li>
+                <li>优先使用 nvm，或修复 npm 全局安装目录权限</li>
               </template>
+            </ul>
+          </div>
+        </details>
+
+        <details
+          class="rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <summary
+            class="cursor-pointer p-3 text-sm font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 sm:p-4 sm:text-base"
+          >
+            安装后提示 native binary not found 或 claude 命令不可用
+          </summary>
+          <div class="px-3 pb-3 text-gray-600 dark:text-gray-400 sm:px-4 sm:pb-4">
+            <p class="mb-2">这通常与 Claude Code 的平台原生包或 npm optional dependencies 有关：</p>
+            <ul class="list-inside list-disc space-y-1 text-sm">
+              <li>
+                确认 npm 没有使用
+                <code class="rounded bg-gray-200 px-1 text-xs dark:bg-gray-700 sm:text-sm"
+                  >--omit=optional</code
+                >
+                或禁用 optional dependencies
+              </li>
+              <li>如果使用镜像源，请等待镜像同步完成后重新安装</li>
+              <li>
+                重新安装后再次执行
+                <code class="rounded bg-gray-200 px-1 text-xs dark:bg-gray-700 sm:text-sm"
+                  >claude --version</code
+                >
+                或
+                <code class="rounded bg-gray-200 px-1 text-xs dark:bg-gray-700 sm:text-sm"
+                  >claude doctor</code
+                >
+              </li>
             </ul>
           </div>
         </details>
